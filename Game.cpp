@@ -1,10 +1,11 @@
 #include "Game.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 BlockState accessible(Game* game,int positionX,int positionY){
     if(positionX < 0 || positionX >= game->mapSize || positionY < 0 || positionY >= game->mapSize)
-        return blocked;
+        return m_blocked;
     else return game->map[positionX][positionY];
 } 
 
@@ -14,12 +15,12 @@ int postionX, int postionY,
 Voice type, int range){
     if(dist(game->player[playerNum]->positionX, game->player[playerNum]->positionY, postionX, postionY) > range) return false;
     switch (type){
-    case voiceNull:
+    case v_null:
         return false;
         break;
         
     default:
-        bufAdd(game, voiceText[(int)type], strlen(voiceText[(int)type]), playerNum);
+        bufInsert(&game->send[playerNum], voiceText[(int)type], strlen(voiceText[(int)type]));
         return true;
         break;
     }
@@ -43,45 +44,46 @@ Voice type, int range){
 }
 
 bool playerMove(Game *game, int playerNum, int deltaX, int deltaY){
-    if(game->player[playerNum]->state == dead) return false;
-    game->player[playerNum]->state = active;
-    if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == blocked){
-        captureVoice(game, opposite(playerNum), game->player[playerNum]->positionX + deltaX, game->player[playerNum]->positionY + deltaY ,bump, voiceRange[bump]);
+    if(game->player[playerNum]->state == p_dead) return false;
+    game->player[playerNum]->state = p_active;
+    if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == m_blocked){
+        captureVoice(game, opposite(playerNum), game->player[playerNum]->positionX + deltaX, game->player[playerNum]->positionY + deltaY ,v_bump, voiceRange[v_bump]);
         char text[]="MOVE 0\n";
-        bufAdd(game, text, strlen(text), playerNum);
+        bufInsert(&game->send[playerNum], text, strlen(text));
         return false;       
     } else {
         game->player[playerNum]->positionX += deltaX;
         game->player[playerNum]->positionY += deltaY;
-        allCaptureVoice(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY, footsteps, voiceRange[footsteps]);
-        if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == bell){
-            allCaptureVoice(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY, dingdong, voiceRange[dingdong]);
+        allCaptureVoice(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY, v_footsteps, voiceRange[v_footsteps]);
+        if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == m_bell){
+            allCaptureVoice(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY, v_dingdong, voiceRange[v_dingdong]);
         }
         char text[]="MOVE 1\n";
-        bufAdd(game, text, strlen(text), playerNum);        
+        bufInsert(&game->send[playerNum], text, strlen(text));
         return true;    
     }
 }
 
 bool playerShoot(Game *game, int playerNum, int deltaX, int deltaY){
-    if(game->player[playerNum]->state != active) return false; 
-    game->player[playerNum]->state = onlyMove;
+    if(game->player[playerNum]->state != p_active) return false; 
+    game->player[playerNum]->state = p_onlyMove;
     bool heard = 0;
     for(int nx = game->player[playerNum]->positionX + deltaX , ny = game->player[playerNum]->positionY + deltaY;
     true; nx += deltaX, ny += deltaY){
-        if(accessible(game,nx,ny) == blocked){
-            allCaptureVoice(game, nx, ny, bump, voiceRange[bump]);
+        if(accessible(game,nx,ny) == m_blocked){
+            allCaptureVoice(game, nx, ny, v_bump, voiceRange[v_bump]);
             break;
         }else{
-            if(!heard) heard = captureVoice(game, opposite(playerNum), nx, ny, arrow, voiceRange[arrow]);
+            if(!heard) heard = captureVoice(game, opposite(playerNum), nx, ny, v_arrow, voiceRange[v_arrow]);
             if(locate(game, opposite(playerNum), nx, ny)) {
-                game->player[playerNum]->state = dead;
+                game->player[playerNum]->state = p_dead;
                 char text1[] = "DEAD 1\n";
-                bufAdd(game, text1, strlen(text1), opposite(playerNum));
+                bufInsert(&game->send[opposite(playerNum)], text1, strlen(text1));
+                
                 char text2[]= "WIN 1\n";
-                bufAdd(game, text2, strlen(text2), playerNum);
+                bufInsert(&game->send[playerNum], text2, strlen(text2));
             }
-            if(accessible(game,nx,ny) == bell) allCaptureVoice(game, nx, ny, dingdong, voiceRange[dingdong]);
+            if(accessible(game,nx,ny) == m_bell) allCaptureVoice(game, nx, ny, v_dingdong, voiceRange[v_dingdong]);
         }
     }
     return true;
@@ -89,7 +91,7 @@ bool playerShoot(Game *game, int playerNum, int deltaX, int deltaY){
 
 bool playerSetBell(Game *game, int playerNum){
     if(game->player[playerNum]->equipment != equipBell) return false;
-    game->map[game->player[playerNum]->positionX][game->player[playerNum]->positionY] = bell;
+    game->map[game->player[playerNum]->positionX][game->player[playerNum]->positionY] = m_bell;
     game->player[playerNum]->equipment = equipNull;
     return true;
 }
@@ -99,11 +101,75 @@ bool locate(Game *game, int playerNum, int positionX, int positionY){
     else return false;
 }
 
-int bufAdd(Game *game, const char* str, int len, int playerNum){
-    for(int i = 0; i < len; i++){
-        game->sendbuf[playerNum][game->buflength[playerNum]++] = str[i];
-        if(game->buflength[playerNum] >= maxBufSize) return -1;
+int drill(Game* game, int nx, int ny, int dx, int dy){
+    if(nx < 0 || nx >= game->mapSize || ny < 0 || ny >= game->mapSize) return 0;
+    game->map[nx][ny] = m_empty;
+    if(nx == dx && ny == dy) return 1;
+    bool finished = 0;
+    while(!finished){
+        int rnd=rand() % 100;
+        if(rnd < 10){
+            finished = drill(game, nx - 1, ny, dx, dy);
+        }else if(rnd < 20){
+            finished = drill(game, nx, ny - 1, dx, dy);
+        }else if(rnd < 60){
+            finished = drill(game, nx + 1, ny, dx, dy);
+        }else 
+            finished = drill(game, nx, ny + 1, dx, dy);
+    }
+    return finished;
+}
+
+int randomizeMap(Game* game){
+    game->player[0]->positionX = 1;
+    game->player[0]->positionY = 1;
+    game->player[1]->positionX = game -> mapSize - 2;
+    game->player[1]->positionY = game -> mapSize - 2; 
+    for(int i = 0; i < game->mapSize; i++)
+        for(int j = 0; j < game->mapSize; j++)
+        {
+            if(rand() % 100 <= 20) game->map[i][j] = m_empty;
+            else game->map[i][j] = m_blocked;
+        }
+    game->map[1][1] = m_empty;
+    game->map[game -> mapSize - 2][game -> mapSize - 2] = m_empty;
+    
+    for(int i = 0; i < 4 ; i++){
+        drill(game, 0, 0, game -> mapSize - 1, game -> mapSize - 1);
     }
     return 0;
 }
 
+int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
+    
+    game->currentTurn = 0;
+    game->mapSize = mapSize;
+    game->player[0] = new Player();
+    game->player[0]->state = p_active;
+    game->player[0]->equipment = equipBell;
+    game->player[1] = new Player();
+    game->player[1]->state = p_active;
+    game->player[1]->equipment = equipBell;    
+    randomizeMap(game);
+    socketInit(&game->send[0], socket0);
+    socketInit(&game->send[1], socket1);
+    socketInit(&game->recv[0], socket0);
+    socketInit(&game->recv[1], socket1);
+    
+    return 0;
+}
+
+void mapLog(Game *game){
+    for(int i = 0; i < game->mapSize; i++)
+    {
+        for(int j = 0; j < game->mapSize; j++)
+        {
+            if(locate(game, 0, i, j)) putchar('O');
+            else if(locate(game, 1, i, j)) putchar('*');
+            else if(game->map[i][j] == m_empty) putchar('.');
+            else if(game->map[i][j] == m_unknown) putchar('?');
+            else putchar('#');
+        }
+        putchar('\n');
+    } 
+}

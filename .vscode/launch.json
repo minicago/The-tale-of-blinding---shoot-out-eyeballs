@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/byy/Desktop/计算机网络实验/mygame",
-      "program": "c:/Users/byy/Desktop/计算机网络实验/mygame/build/Debug/outDebug",
+      "cwd": "c:/Users/byy/Desktop/神仙的果子2/2.0/The-tale-of-blinding---shoot-out-eyeballs",
+      "program": "c:/Users/byy/Desktop/神仙的果子2/2.0/The-tale-of-blinding---shoot-out-eyeballs/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

@@ -1,4 +1,3 @@
-#include "winsock2.h"
 #include <stdio.h>
 #include <iostream>
 #include <string.h>
@@ -6,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "winsock2.h"
 
 #pragma comment(lib,"ws2_32.lib")
 
