@@ -47,6 +47,7 @@ struct Game{
     SocketBuf send[2],recv[2];
     pthread_t loopThread;
     bool finished;
+    //sem_t preparedThread;
 };
 
 const int voiceRange[]={

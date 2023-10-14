@@ -62,27 +62,33 @@ void stringLog(const char *str){
 }
 
 int messageInserst(MessageList* messageList, char * message){
+    printf("Begin Head:%x\n", messageList->head);
+    printf("sem_post: %x\n", &messageList->length);
     sem_post(&messageList->length);
     if(messageList->head == NULL){
-        messageList->head = new Message();
+        messageList->head = (Message*) malloc(sizeof(Message));
         messageList->head->message = message;
         messageList->tail = messageList->head;
         messageList->head->nxt = NULL;
     }else{
-        messageList->tail->nxt = new Message();
+        messageList->tail->nxt = (Message*) malloc(sizeof(Message));
         messageList->tail = messageList->tail->nxt;
         messageList->tail->message = message;
         messageList->tail->nxt = NULL;
     }
+    printf("End Head:%x\n", messageList->head);
     return 0;
 }
 
 int messagePop(MessageList *messageList){
+    printf("messagePop:%x %s\n", messageList->head, messageList->head->message);
     if(messageList->head == NULL) return -1;
     free(messageList->head->message);
+    printf("free 1\n");
     Message *tmp= messageList->head;
     messageList->head = messageList->head->nxt;
     free(tmp);
+    printf("free 2\n");
     return 0;
 }
 
@@ -96,7 +102,8 @@ char* messageStrDup(const char * message){
 }
 
 int messageListInit(MessageList *messageList){
-    sem_init(&messageList->length, 1, 0);
+    //printf("sem_init: %x\n", &messageList->length);
+    int t=sem_init(&messageList->length, 0, 0);
     messageList->head = NULL;
     return 0;
 }

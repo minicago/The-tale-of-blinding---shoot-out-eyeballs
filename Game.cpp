@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-BlockState accessible(Game* game,int positionX,int positionY){
+BlockState accessible(Game* game, int positionX, int positionY){
     if(positionX < 0 || positionX >= game->mapSize || positionY < 0 || positionY >= game->mapSize)
         return m_blocked;
     else return game->map[positionX][positionY];
@@ -46,9 +46,9 @@ Voice type, int range){
 bool playerMove(Game *game, int playerNum, int deltaX, int deltaY){
     if(game->player[playerNum]->state == p_dead) return false;
     game->player[playerNum]->state = p_active;
-    if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == m_blocked){
-        captureVoice(game, opposite(playerNum), game->player[playerNum]->positionX + deltaX, game->player[playerNum]->positionY + deltaY ,v_bump, voiceRange[v_bump]);
-        bufInsert(&game->send[playerNum], "MOVE 0\n");
+    if(accessible(game, game->player[playerNum]->positionX + deltaX, game->player[playerNum]->positionY + deltaY) == m_blocked){
+        allCaptureVoice(game, game->player[playerNum]->positionX + deltaX, game->player[playerNum]->positionY + deltaY ,v_bump, voiceRange[v_bump]);
+        bufInsert(&game->send[playerNum], "MOV 0\n");
         return false;       
     } else {
         game->player[playerNum]->positionX += deltaX;
@@ -57,7 +57,7 @@ bool playerMove(Game *game, int playerNum, int deltaX, int deltaY){
         if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == m_bell){
             allCaptureVoice(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY, v_dingdong, voiceRange[v_dingdong]);
         }
-        bufInsert(&game->send[playerNum], "MOVE 1\n");
+        bufInsert(&game->send[playerNum], "MOV 1\n");
         return true;    
     }
 }
@@ -133,6 +133,9 @@ int randomizeMap(Game* game){
     for(int i = 0; i < 4 ; i++){
         drill(game, 0, 0, game -> mapSize - 1, game -> mapSize - 1);
     }
+
+    mapLog(game);
+
     return 0;
 }
 
@@ -140,18 +143,23 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     
     game->currentTurn = 0;
     game->mapSize = mapSize;
-    game->player[0] = new Player();
+    game->player[0] = (Player*) malloc(sizeof(Player));
     game->player[0]->state = p_active;
     game->player[0]->equipment = equipBell;
-    game->player[1] = new Player();
+    game->player[1] = (Player*) malloc(sizeof(Player));
     game->player[1]->state = p_active;
     game->player[1]->equipment = equipBell;
     game->finished = false;
     randomizeMap(game);
-    socketInit(&game->send[0], socket0, socketSendLoop);
-    socketInit(&game->send[1], socket1, socketSendLoop);
-    socketInit(&game->recv[0], socket0, socketRecvLoop);
-    socketInit(&game->recv[1], socket1, socketRecvLoop);
+    socketInit(&game->send[0], socket0);
+    socketInit(&game->send[1], socket1);
+    socketInit(&game->recv[0], socket0);
+    socketInit(&game->recv[1], socket1);
+
+    socketStart(&game->send[0], socketSendLoop);
+    socketStart(&game->send[1], socketSendLoop);
+    socketStart(&game->recv[0], socketRecvLoop);
+    socketStart(&game->recv[1], socketRecvLoop);    
     pthread_create(&game->loopThread, NULL, gameLoop, (void*) game);
     return 0;
 }
@@ -161,12 +169,15 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
 void* gameLoop(void* ctx){
     Game* game = (Game*) ctx;
     while(!game->finished){
+        mapLog(game);
         game->currentTurn ++;
-        int currentPlayer = game->currentTurn ^ 1;
+        printf("Turn: %d\n",  game->currentTurn );
+        int currentPlayer = game->currentTurn & 1;
         bufInsert(&game->send[currentPlayer], "TEXT take_turn\n");
         char *message;
         while(1){
             message = pullMessage(&game->recv[currentPlayer]);
+            printf("pull message: %s\n",message);
             if(messageParse(message) == msg_TIMEOUT){
                 abandonMessage(&game->recv[currentPlayer]);
                 if(game->recv[currentPlayer].messageList.head == NULL){
@@ -182,7 +193,7 @@ void* gameLoop(void* ctx){
         {
         case msg_MOV:
             
-            for(int cnt = 0;cnt < 2;cnt++){
+            for(int cnt = 0;cnt < 3;cnt++){
                 if(mArg[cnt] == '\n') break;           
                 if(mArg[cnt] == 'U'){
                     if(playerMove(game, currentPlayer, -1, 0) == false) break;

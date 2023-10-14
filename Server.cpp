@@ -154,6 +154,7 @@ int main(int argc,char* argv[]){
 				tmp = sessionSocket;
 			}else{
 				initGame(&g, 12, tmp, sessionSocket);
+				break;
 			}
 			
 			
@@ -162,5 +163,6 @@ int main(int argc,char* argv[]){
 		
 		
 	}
+	pthread_join(g.loopThread, NULL);
 	return 0;
 }

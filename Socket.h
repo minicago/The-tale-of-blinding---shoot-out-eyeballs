@@ -22,7 +22,9 @@ int bufInsert(SocketBuf* socketBuf, const char* str);
 
 typedef void*(LoopFunc)(void* ctx);
 
-int socketInit(SocketBuf* socketBuf, SOCKET socket, LoopFunc loopFunc );
+int socketInit(SocketBuf* socketBuf, SOCKET socket);
+
+int socketStart(SocketBuf* socketBuf, LoopFunc loopFunc );
 
 void* socketRecvLoop(void* ctx);
 
