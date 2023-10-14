@@ -1,6 +1,9 @@
 #ifndef Message__h
 #define Message__h
 
+#include <semaphore.h>
+#pragma comment(lib, "pthreadVC2.lib")
+
 enum MessageType{
     msg_UNKNOWN = 0,
     msg_NULL = 1,
@@ -13,6 +16,24 @@ enum MessageType{
     msg_WIN = 8,
     msg_LOSE = 9
 };
+
+struct Message{
+    char* message;
+    Message* nxt;
+};
+
+struct MessageList{
+    Message *head,*tail;
+    sem_t length;
+};
+
+int messageInserst(MessageList *messageList, char* message);
+
+int messagePop(MessageList *messageList);
+
+char* messageStrDup(char * message);
+
+int messageListInit(MessageList *messageList);
 
 bool strPreCmp(const char* str, const char* pre);
 

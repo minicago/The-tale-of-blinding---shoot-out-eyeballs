@@ -151,11 +151,28 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     game->player[1]->state = p_active;
     game->player[1]->equipment = equipBell;    
     randomizeMap(game);
-    socketInit(&game->send[0], socket0);
-    socketInit(&game->send[1], socket1);
-    socketInit(&game->recv[0], socket0);
-    socketInit(&game->recv[1], socket1);
+    socketInit(&game->send[0], socket0, socketSendLoop);
+    socketInit(&game->send[1], socket1, socketSendLoop);
+    socketInit(&game->recv[0], socket0, socketRecvLoop);
+    socketInit(&game->recv[1], socket1, socketRecvLoop);
     
+    return 0;
+}
+
+
+
+void* gameLoop(void* ctx){
+
+}
+
+int cancelGame(Game *game){
+    pthread_cancel(game->send[0].loopThread);
+    pthread_cancel(game->send[1].loopThread);
+    pthread_cancel(game->recv[0].loopThread);
+    pthread_cancel(game->recv[1].loopThread);
+    //send socket & recv socket shares one
+    closesocket(game->send[0].socket); 
+    closesocket(game->send[1].socket);
     return 0;
 }
 

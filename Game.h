@@ -95,6 +95,8 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1);
 
 void* gameLoop(void* ctx);
 
+int cancelGame(Game *game);
+
 void mapLog(Game *game);
 
 #endif

@@ -1,6 +1,7 @@
 #include "Message.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #define MSGCMPCASE(str1, type) if(strPreCmp(str1, #type)) return msg_##type
 
 bool strPreCmp(const char* str, const char* pre){
@@ -25,7 +26,7 @@ MessageType messageParse(const char *message){
 
 int messageLength(const char *message){
     for(int i = 0; ; i++){
-        if(message[i] == '\n') return i+1;
+        if(message[i] == '\n'||message[i] == '\0') return i+1;
     }
 }
 
@@ -55,4 +56,43 @@ void stringLog(const char *str){
         else putchar(str[i]);
     }
     putchar('\n');
+}
+
+int messageInserst(MessageList* messageList, char * message){
+    sem_post(&messageList->length);
+    if(messageList->head == NULL){
+        messageList->head = new Message();
+        messageList->head->message = message;
+        messageList->tail = messageList->head;
+        messageList->head->nxt = NULL;
+    }else{
+        messageList->tail->nxt = new Message();
+        messageList->tail = messageList->tail->nxt;
+        messageList->tail->message = message;
+        messageList->tail->nxt = NULL;
+    }
+    return 0;
+}
+
+int messagePop(MessageList *messageList){
+    if(messageList->head == NULL) return -1;
+    free(messageList->head->message);
+    Message *tmp= messageList->head;
+    messageList->head = messageList->head->nxt;
+    free(tmp);
+    return 0;
+}
+
+char* messageStrDup(char * message){
+    int length = messageLength(message);
+    char* str = (char*) malloc(length + 1);
+    for(int i = 0; i < length; i++)
+        str[i] = message[i];
+    str[length] = '\0';
+    return str;
+}
+
+int messageListInit(MessageList *messageList){
+    sem_init(&messageList->length, 1, 0);
+    messageList->head = NULL;
 }

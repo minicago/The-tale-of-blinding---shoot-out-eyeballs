@@ -7,20 +7,27 @@
 #pragma comment(lib,"ws2_32.lib")
 
 const int maxBufLength = 4096;
+const int maxRecycleLength = 1024;
 
 struct SocketBuf{
     SOCKET socket;
-    char buf[maxBufLength];
-    int length;
+    MessageList messageList;
     pthread_mutex_t socketMutex;
+    pthread_t loopThread;
 };
 
 int bufInsert(SocketBuf* socketBuf, const char* str, int len);
 
-int socketInit(SocketBuf* socketBuf, SOCKET socket);
+typedef void*(LoopFunc)(void* ctx);
+
+int socketInit(SocketBuf* socketBuf, SOCKET socket, LoopFunc loopFunc );
 
 void* socketRecvLoop(void* ctx);
 
-int socketSend(SocketBuf* socketBuf);
+void* socketSendLoop(void* ctx);
+
+char* pullMessage(SocketBuf* socketBuf);
+
+int abandonMessage(SocketBuf* socketBuf);
 
 #endif
