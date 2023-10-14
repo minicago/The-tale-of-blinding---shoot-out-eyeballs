@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "winsock2.h"
+#include "Game.h"
 
 #pragma comment(lib,"ws2_32.lib")
 
@@ -42,20 +43,7 @@ int Set_addr(sockaddr_in *addr,Args args){
 	return 0;
 }
 
-struct SessionSockets{
-	SOCKET socket;
-	bool available;
-	IN_ADDR clientIp;
-	uint16_t clientPort;
-}sessionSockets[MAX_Client];
-
-#define msend(str, socket) send(socket, str, strlen(str), 0)
-
-int handle_request(char* recvbuf, int len, SOCKET socket){
-	char *ptr = recvbuf;
-	
-	
-}
+Game g;
 
 
 int main(int argc,char* argv[]){
@@ -133,6 +121,8 @@ int main(int argc,char* argv[]){
 	FD_SET(srvSocket, &rfds);
 
 
+	bool waiting = 0;
+	SOCKET tmp;
 
 	while(true){
 		
@@ -141,14 +131,6 @@ int main(int argc,char* argv[]){
 
 
 		FD_SET(srvSocket, &rfds);
-
-		for(int i = 0; i < MAX_Client; i++){
-			if(sessionSockets[i].available){
-				FD_SET(sessionSockets[i].socket,&rfds);
-				FD_SET(sessionSockets[i].socket,&wfds);
-			}
-		}
-		
 
 		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
 
@@ -167,46 +149,18 @@ int main(int argc,char* argv[]){
 
 			//FD_SET(sessionSocket, &rfds);
 			//FD_SET(sessionSocket, &wfds);
-
-			for(int i = 0; i < MAX_Client; i++){
-				if(!sessionSockets[i].available){
-					sessionSockets[i].socket = sessionSocket;
-					sessionSockets[i].available = true;
-					sessionSockets[i].clientIp = clientAddr.sin_addr;
-					sessionSockets[i].clientPort = clientAddr.sin_port;
-					
-					printf("Socket NO.%d used!\n", i);
-					break;
-					
-				}
+			if(!waiting){
+				waiting = 1;
+				tmp = sessionSocket;
+			}else{
+				initGame(&g, 12, tmp, sessionSocket);
 			}
+			
+			
 			//first_connetion = false;
 		}
 		
-		if (nTotal > 0) {
-			for(int i = 0; i < MAX_Client; i++){
-				if(sessionSockets[i].available){	
-					if (FD_ISSET(sessionSockets[i].socket, &rfds)) {
-						//receiving data from client
-						memset(recvBuf, '\0', 4096);
-						rtn = recv(sessionSockets[i].socket, recvBuf, 2048, 0);
-						if (rtn > 0) {
-							printf("Received %d bytes from client(%s:%d): %s\n", rtn, inet_ntoa(sessionSockets[i].clientIp), ntohs(sessionSockets[i].clientPort), recvBuf);
-							//send(sessionSockets[i^1].socket, recvBuf, strlen(recvBuf), 0);
-							handle_request(recvBuf, rtn, sessionSockets[i].socket);						
-						}
-						// else {
-							printf("Client leaving ...\n");
-							closesocket(sessionSockets[i].socket);
-							//first_connetion = true;
-							sessionSockets[i].available = false;
-							printf("Socket NO.%d released!\n", i);
-						// }
-					}
-				}
-			}
-			
-		}	
+		
 	}
 	return 0;
 }

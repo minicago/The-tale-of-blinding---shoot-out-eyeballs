@@ -152,7 +152,7 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     socketInit(&game->send[1], socket1, socketSendLoop);
     socketInit(&game->recv[0], socket0, socketRecvLoop);
     socketInit(&game->recv[1], socket1, socketRecvLoop);
-    
+    pthread_create(&game->loopThread, NULL, gameLoop, (void*) game);
     return 0;
 }
 
@@ -163,6 +163,7 @@ void* gameLoop(void* ctx){
     while(!game->finished){
         game->currentTurn ++;
         int currentPlayer = game->currentTurn ^ 1;
+        bufInsert(&game->send[currentPlayer], "TEXT take_turn\n");
         char *message;
         while(1){
             message = pullMessage(&game->recv[currentPlayer]);
@@ -227,6 +228,7 @@ void* gameLoop(void* ctx){
 }
 
 int cancelGame(Game *game){
+    pthread_cancel(game->loopThread);
     pthread_cancel(game->send[0].loopThread);
     pthread_cancel(game->send[1].loopThread);
     pthread_cancel(game->recv[0].loopThread);
