@@ -13,7 +13,10 @@ int bufInsert(SocketBuf* socketBuf, const char* str){
 int socketInit(SocketBuf* socketBuf, SOCKET socket){
     socketBuf->socket = socket;
     messageListInit(&socketBuf->messageList);
-    pthread_mutex_init(&socketBuf->socketMutex,NULL);
+    pthread_mutexattr_t mutexattr;
+    pthread_mutexattr_init(&mutexattr);
+    pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_PRIVATE);
+    pthread_mutex_init(&socketBuf->socketMutex, &mutexattr);
     //pthread_create(&socketBuf->loopThread, NULL, loopFunc, (void*) socketBuf);
     return 0;
 }
