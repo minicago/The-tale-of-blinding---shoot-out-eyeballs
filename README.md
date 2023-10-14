@@ -61,3 +61,11 @@ makefile之后先运行server
 server的参数分别为配置的ip，端口
 
 client的参数为连接server的ip，端口
+
+## 后续目标
+
+更人性化的客户端
+
+记录比赛结果
+
+添加道具赛

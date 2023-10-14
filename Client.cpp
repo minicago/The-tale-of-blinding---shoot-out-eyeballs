@@ -52,6 +52,7 @@ void UI(){
 		if(tmp == 1){
 			game.player[0]->state=p_active;
 			printf("Input towards(at most 3 steps) U(p) or D(own) or L(eft) or R(ight) \n");
+			printf("Don't split your towards by ',' or ' ' \n");
 			char str[128]="MOV ";
 			scanf("%s",str+4);
 			for(int i=4; str[i]!='\0';i++) movq.push(str[i]);
