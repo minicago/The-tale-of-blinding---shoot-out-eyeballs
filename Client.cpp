@@ -3,10 +3,13 @@
 #include <iostream>
 #include <string>
 #include <pthread.h>
+#include "Game.h"
+#include <queue>
 
 #pragma comment(lib,"ws2_32.lib")
 
 using namespace std;
+queue<char> movq;
 
 struct Args{
 	unsigned int ip;
@@ -38,32 +41,50 @@ char recvBuf[4096];
 
 pthread_mutex_t lock1;
 
-void* recvSocket(void* socket)
-{
-    char recvBuf[4096];
-    while(1){
-        FD_SET rfds,wfds;
-		FD_ZERO(&rfds);
-		FD_ZERO(&wfds);
-		FD_SET((SOCKET) socket,&rfds);
-		FD_SET((SOCKET) socket,&wfds);
-		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
-		if(nTotal > 0){
-			pthread_mutex_lock(&lock1);
-			if(FD_ISSET(socket, &rfds) ){
-				memset(recvBuf, '\0', 4096);
-				int rtn = recv((SOCKET) socket, recvBuf, 256, 0);
-				if (rtn > 0) {
-					printf("Received %d bytes : %s\n", rtn, recvBuf);
-				}else{
-					printf("fail!\n");
-					return NULL;
-				}
-			}
-			pthread_mutex_unlock(&lock1);
+Game game;
+
+void UI(){
+	while(1){
+		printf("Input (1-3)\n");
+		printf("1 move\n2 shoot\n3 set bell\n");
+		int tmp;
+		scanf("%d", &tmp);
+		if(tmp == 1){
+			game.player[0]->state=p_active;
+			printf("Input towards(at most 3 steps) U(p) or D(own) or L(eft) or R(ight) \n");
+			char str[128]="MOV ";
+			scanf("%s",str+4);
+			for(int i=4; str[i]!='\0';i++) movq.push(str[i]);
+			str[strlen(str)+1] = '\0';
+			str[strlen(str)] = '\n';
+			bufInsert(&game.send[0], str);
+			break;
 		}
-    }
-	return NULL;
+		if(tmp == 2){
+			if(game.player[0]->state != p_active){
+				printf("You need move and then can shoot!\n");
+				continue;
+			}
+			printf("Input towards U(p) or D(own) or L(eft) or R(ight) \n");
+			char str[128]="SHOOT ";
+			scanf("%s",str+6);
+			str[strlen(str)+1] = '\0';
+			str[strlen(str)] = '\n';
+			bufInsert(&game.send[0], str);
+			break;						
+		}
+		if(tmp == 3){
+			if(game.player[0]->equipment != equipBell){
+				printf("No bell now!\n");
+				continue;
+			}
+			bufInsert(&game.send[0], "SET\n");
+			break;
+		}
+	}
+
+
+
 }
 
 int main(int argc,char* argv[]){
@@ -102,7 +123,7 @@ int main(int argc,char* argv[]){
 	clientAddr.sin_family = AF_INET;
 	
 	clientAddr.sin_port = htons(0);
-	 clientAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	clientAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	 
 	//binding
 	int rtn = bind(clientSocket,(LPSOCKADDR)&clientAddr,sizeof(clientAddr));
@@ -118,26 +139,93 @@ int main(int argc,char* argv[]){
 		printf("Connect to server error!\n");
 		return 0;
 	}
-	rtn = pthread_create(&readthread,NULL,recvSocket,(void*) clientSocket);
+	
 	if(rtn!=0){
 		printf("Error in pthread_create!\n");
 	}
 
 		printf("Connect to server ok!");
 
-	do {
-		cout << "\nPlease input your message:";
-		getline(cin, input);
+	initClient(&game, clientSocket);
 
-		//send data to server
-		rtn = send(clientSocket,input.c_str(),input.length(),0);
-		if (rtn == SOCKET_ERROR) {
-			printf("Send to server failed\n");
-			closesocket(clientSocket);
-			WSACleanup();
-			return 0;
+	printf("initClient Ok!\n");
+
+	//bufInsert(&game.send[0],"READY 0\n");
+
+	do {
+		printf("*************\n");
+		char *message;
+        message = pullMessage(&game.recv[0]);
+		printf("messageadd:%x\n",message);
+		printf("message:%s\n",message);
+		MessageType msgType = messageParse(message);
+        const char* mArg = messageString(message);
+		int mInt = messageInt(message);
+		switch (msgType){
+		case msg_MAPSIZE:
+			nullMap(&game, mInt);
+			break;
+		case msg_POSITIONX:
+			game.player[0]->positionX=mInt;
+			break;
+		case msg_POSITIONY:
+			game.player[0]->positionY=mInt;
+			break;
+		case msg_TEXT:
+			printf("%s", mArg);
+			break;
+		case msg_LOSE:
+			printf("You lose!\n");
+			game.finished = true;
+			break;
+		case msg_WIN:
+			printf("You win!\n");
+			game.finished = true;			
+			break;
+		case msg_MOV:
+			if(mInt == 0){
+				char tmp = movq.front();
+				if(tmp == 'U'){
+					if(game.player[0]->positionX > 0) game.map[game.player[0]->positionX - 1][game.player[0]->positionY] = m_blocked;
+				}
+				if(tmp == 'D'){
+					if(game.player[0]->positionX < game.mapSize - 1) game.map[game.player[0]->positionX + 1][game.player[0]->positionY] = m_blocked;
+				}
+				if(tmp == 'L'){
+					if(game.player[0]->positionY > 0) game.map[game.player[0]->positionX][game.player[0]->positionY - 1] = m_blocked;
+				}
+				if(tmp == 'R'){
+					if(game.player[0]->positionY < game.mapSize - 1) game.map[game.player[0]->positionX][game.player[0]->positionY - 1] = m_blocked;
+				}
+				while(!movq.empty()) movq.pop();
+			} else {
+				char tmp = movq.front();
+				if(tmp == 'U'){
+					game.player[0]->positionX = game.player[0]->positionX - 1; 
+				}
+				if(tmp == 'D'){
+					game.player[0]->positionX = game.player[0]->positionX + 1; 
+				}
+				if(tmp == 'L'){
+					game.player[0]->positionY = game.player[0]->positionY - 1; 
+				}
+				if(tmp == 'R'){
+					game.player[0]->positionY = game.player[0]->positionY + 1; 
+				}
+				game.map[game.player[0]->positionX][game.player[0]->positionY] = m_empty;
+				movq.pop();
+			}
+			break;
+		case msg_VOICE:
+			printf("%s", mArg);
+			break;
+		case msg_READY:
+			mapLog(&game);
+			UI();
+			break;
 		}
-	}while(input != "quit");
+		abandonMessage(&game.recv[0]);
+	}while(!game.finished);
 	closesocket(clientSocket);
 	WSACleanup();
 }

@@ -139,6 +139,17 @@ int randomizeMap(Game* game){
     return 0;
 }
 
+int sendPosition(Game *game, int playernum){
+    char message[64];
+    sprintf(message, "POSITIONX %d\n", game->player[playernum]->positionX);
+    bufInsert(&game->send[playernum], message);
+    sprintf(message, "POSITIONY %d\n", game->player[playernum]->positionY);
+    bufInsert(&game->send[playernum], message);
+    sprintf(message, "MAPSIZE %d\n", game->mapSize);
+    bufInsert(&game->send[playernum], message);
+    return 0;
+}
+
 int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     
     game->currentTurn = 0;
@@ -159,7 +170,8 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     socketStart(&game->send[0], socketSendLoop);
     socketStart(&game->send[1], socketSendLoop);
     socketStart(&game->recv[0], socketRecvLoop);
-    socketStart(&game->recv[1], socketRecvLoop);    
+    socketStart(&game->recv[1], socketRecvLoop);
+
     pthread_create(&game->loopThread, NULL, gameLoop, (void*) game);
     return 0;
 }
@@ -168,12 +180,23 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
 
 void* gameLoop(void* ctx){
     Game* game = (Game*) ctx;
+
+    //pullMessage(&game->recv[0]);
+    sendPosition(game, 0);
+
+    //abandonMessage(&game->recv[0]);
+
+    //pullMessage(&game->recv[1]);
+    sendPosition(game, 1); 
+    //abandonMessage(&game->recv[1]);
+    
+      
     while(!game->finished){
         mapLog(game);
         game->currentTurn ++;
         printf("Turn: %d\n",  game->currentTurn );
         int currentPlayer = game->currentTurn & 1;
-        bufInsert(&game->send[currentPlayer], "TEXT take_turn\n");
+        bufInsert(&game->send[currentPlayer], "READY 0\n");
         char *message;
         while(1){
             message = pullMessage(&game->recv[currentPlayer]);
@@ -236,6 +259,7 @@ void* gameLoop(void* ctx){
     }
     cancelGame(game);
     pthread_exit(NULL);
+    return NULL;
 }
 
 int cancelGame(Game *game){
@@ -247,13 +271,20 @@ int cancelGame(Game *game){
        sem_getvalue(&game->send[0].messageList.length, &x);
     int y = 1;
     while(y != 0)
-       sem_getvalue(&game->send[1].messageList.length, &y);    
-    
+       sem_getvalue(&game->send[1].messageList.length, &y);  
+    while(game->recv[0].messageList.head != NULL){
+        abandonMessage(&game->recv[0]);
+    }
+    while(game->recv[1].messageList.head != NULL){
+        abandonMessage(&game->recv[1]);
+    }    
     pthread_cancel(game->send[0].loopThread);
     pthread_cancel(game->send[1].loopThread);    
     //send socket & recv socket shares one
     closesocket(game->send[0].socket); 
     closesocket(game->send[1].socket);
+    free(game->player[0]);
+    free(game->player[1]);
     return 0;
 }
 
@@ -270,4 +301,33 @@ void mapLog(Game *game){
         }
         putchar('\n');
     } 
+}
+
+int initClient(Game *game, SOCKET socket){
+    printf("initialized start\n");
+    game->currentTurn = 0;
+    game->player[0] = (Player*) malloc(sizeof(Player));
+    game->player[0]->state = p_active;
+    game->player[0]->equipment = equipBell;
+    game->player[1] = (Player*) malloc(sizeof(Player));
+    game->player[1]->positionX = -1;
+    game->player[1]->positionY = -1;    
+    game->finished = false;
+    printf("game state initialized\n");
+    socketInit(&game->send[0], socket);
+    socketInit(&game->recv[0], socket);   
+    socketStart(&game->send[0], socketSendLoop);
+    socketStart(&game->recv[0], socketRecvLoop);
+    printf("socket initialized\n");
+    return 0;
+}
+
+int nullMap(Game *game, int mapSize){
+    game->mapSize = mapSize;
+    for(int i = 0; i < mapSize; i++)
+        for(int j = 0; j < mapSize; j++)
+            game->map[i][j] = m_unknown;
+    game->map[1][1] = m_empty;
+    game->map[mapSize-2][mapSize-2] = m_empty;
+    return 0;
 }

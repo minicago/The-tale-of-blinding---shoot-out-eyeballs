@@ -101,4 +101,8 @@ int cancelGame(Game *game);
 
 void mapLog(Game *game);
 
+int initClient(Game *game, SOCKET socket);
+
+int nullMap(Game *game, int mapSize);
+
 #endif

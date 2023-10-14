@@ -17,6 +17,10 @@ enum MessageType{
     msg_LOSE = 9,
     msg_CANCEL = 10,
     msg_TIMEOUT = 11,
+    msg_READY = 12,
+    msg_POSITIONX = 13,
+    msg_POSITIONY = 14,
+    msg_MAPSIZE = 15,
 };
 
 struct Message{
@@ -29,7 +33,7 @@ struct MessageList{
     sem_t length;
 };
 
-int messageInserst(MessageList *messageList, char* message);
+int messageInsert(MessageList *messageList, char* message);
 
 int messagePop(MessageList *messageList);
 

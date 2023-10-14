@@ -23,7 +23,10 @@ MessageType messageParse(const char *message){
     MSGCMPCASE(message,LOSE);
     MSGCMPCASE(message,CANCEL);
     MSGCMPCASE(message,TIMEOUT);
-
+    MSGCMPCASE(message,READY);
+    MSGCMPCASE(message,POSITIONX);
+    MSGCMPCASE(message,POSITIONY);
+    MSGCMPCASE(message,MAPSIZE);
     return msg_UNKNOWN;
 }
 
@@ -61,8 +64,8 @@ void stringLog(const char *str){
     putchar('\n');
 }
 
-int messageInserst(MessageList* messageList, char * message){
-    printf("Begin Head:%x\n", messageList->head);
+int messageInsert(MessageList* messageList, char * message){
+    //printf("Begin Head:%x\n", messageList->head);
     printf("sem_post: %x\n", &messageList->length);
     sem_post(&messageList->length);
     if(messageList->head == NULL){
@@ -76,7 +79,7 @@ int messageInserst(MessageList* messageList, char * message){
         messageList->tail->message = message;
         messageList->tail->nxt = NULL;
     }
-    printf("End Head:%x\n", messageList->head);
+    //printf("End Head:%x\n", messageList->head);
     return 0;
 }
 
@@ -84,11 +87,11 @@ int messagePop(MessageList *messageList){
     printf("messagePop:%x %s\n", messageList->head, messageList->head->message);
     if(messageList->head == NULL) return -1;
     free(messageList->head->message);
-    printf("free 1\n");
+    //printf("free 1\n");
     Message *tmp= messageList->head;
     messageList->head = messageList->head->nxt;
     free(tmp);
-    printf("free 2\n");
+    //printf("free 2\n");
     return 0;
 }
 
