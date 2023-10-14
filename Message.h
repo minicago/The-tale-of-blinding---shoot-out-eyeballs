@@ -14,7 +14,9 @@ enum MessageType{
     msg_VOICE = 6,
     msg_TEXT = 7,
     msg_WIN = 8,
-    msg_LOSE = 9
+    msg_LOSE = 9,
+    msg_CANCEL = 10,
+    msg_TIMEOUT = 11,
 };
 
 struct Message{
@@ -31,7 +33,7 @@ int messageInserst(MessageList *messageList, char* message);
 
 int messagePop(MessageList *messageList);
 
-char* messageStrDup(char * message);
+char* messageStrDup(const char * message);
 
 int messageListInit(MessageList *messageList);
 

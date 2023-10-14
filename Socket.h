@@ -9,6 +9,8 @@
 const int maxBufLength = 4096;
 const int maxRecycleLength = 1024;
 
+const int maxWaitSec = 120;
+
 struct SocketBuf{
     SOCKET socket;
     MessageList messageList;
@@ -16,7 +18,7 @@ struct SocketBuf{
     pthread_t loopThread;
 };
 
-int bufInsert(SocketBuf* socketBuf, const char* str, int len);
+int bufInsert(SocketBuf* socketBuf, const char* str);
 
 typedef void*(LoopFunc)(void* ctx);
 

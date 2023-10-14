@@ -21,6 +21,9 @@ MessageType messageParse(const char *message){
     MSGCMPCASE(message,TEXT);
     MSGCMPCASE(message,WIN);
     MSGCMPCASE(message,LOSE);
+    MSGCMPCASE(message,CANCEL);
+    MSGCMPCASE(message,TIMEOUT);
+
     return msg_UNKNOWN;
 }
 
@@ -83,7 +86,7 @@ int messagePop(MessageList *messageList){
     return 0;
 }
 
-char* messageStrDup(char * message){
+char* messageStrDup(const char * message){
     int length = messageLength(message);
     char* str = (char*) malloc(length + 1);
     for(int i = 0; i < length; i++)
@@ -95,4 +98,5 @@ char* messageStrDup(char * message){
 int messageListInit(MessageList *messageList){
     sem_init(&messageList->length, 1, 0);
     messageList->head = NULL;
+    return 0;
 }

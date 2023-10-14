@@ -20,7 +20,7 @@ Voice type, int range){
         break;
         
     default:
-        bufInsert(&game->send[playerNum], voiceText[(int)type], strlen(voiceText[(int)type]));
+        bufInsert(&game->send[playerNum], voiceText[(int)type]);
         return true;
         break;
     }
@@ -48,8 +48,7 @@ bool playerMove(Game *game, int playerNum, int deltaX, int deltaY){
     game->player[playerNum]->state = p_active;
     if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == m_blocked){
         captureVoice(game, opposite(playerNum), game->player[playerNum]->positionX + deltaX, game->player[playerNum]->positionY + deltaY ,v_bump, voiceRange[v_bump]);
-        char text[]="MOVE 0\n";
-        bufInsert(&game->send[playerNum], text, strlen(text));
+        bufInsert(&game->send[playerNum], "MOVE 0\n");
         return false;       
     } else {
         game->player[playerNum]->positionX += deltaX;
@@ -58,8 +57,7 @@ bool playerMove(Game *game, int playerNum, int deltaX, int deltaY){
         if(accessible(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY) == m_bell){
             allCaptureVoice(game, game->player[playerNum]->positionX, game->player[playerNum]->positionY, v_dingdong, voiceRange[v_dingdong]);
         }
-        char text[]="MOVE 1\n";
-        bufInsert(&game->send[playerNum], text, strlen(text));
+        bufInsert(&game->send[playerNum], "MOVE 1\n");
         return true;    
     }
 }
@@ -77,11 +75,9 @@ bool playerShoot(Game *game, int playerNum, int deltaX, int deltaY){
             if(!heard) heard = captureVoice(game, opposite(playerNum), nx, ny, v_arrow, voiceRange[v_arrow]);
             if(locate(game, opposite(playerNum), nx, ny)) {
                 game->player[playerNum]->state = p_dead;
-                char text1[] = "DEAD 1\n";
-                bufInsert(&game->send[opposite(playerNum)], text1, strlen(text1));
-                
-                char text2[]= "WIN 1\n";
-                bufInsert(&game->send[playerNum], text2, strlen(text2));
+                game->finished = true;
+                bufInsert(&game->send[opposite(playerNum)], "DEAD 1\n");
+                bufInsert(&game->send[playerNum], "WIN 1\n");
             }
             if(accessible(game,nx,ny) == m_bell) allCaptureVoice(game, nx, ny, v_dingdong, voiceRange[v_dingdong]);
         }
@@ -149,7 +145,8 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     game->player[0]->equipment = equipBell;
     game->player[1] = new Player();
     game->player[1]->state = p_active;
-    game->player[1]->equipment = equipBell;    
+    game->player[1]->equipment = equipBell;
+    game->finished = false;
     randomizeMap(game);
     socketInit(&game->send[0], socket0, socketSendLoop);
     socketInit(&game->send[1], socket1, socketSendLoop);
@@ -162,7 +159,71 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
 
 
 void* gameLoop(void* ctx){
+    Game* game = (Game*) ctx;
+    while(!game->finished){
+        game->currentTurn ++;
+        int currentPlayer = game->currentTurn ^ 1;
+        char *message;
+        while(1){
+            message = pullMessage(&game->recv[currentPlayer]);
+            if(messageParse(message) == msg_TIMEOUT){
+                abandonMessage(&game->recv[currentPlayer]);
+                if(game->recv[currentPlayer].messageList.head == NULL){
+                    bufInsert(&game->send[0],"CANCEL 1\n");
+                    bufInsert(&game->send[1],"CANCEL 1\n");
+                    cancelGame(game);
+                }
+            }else break;
+        }
+        MessageType msgType = messageParse(message);
+        const char* mArg = messageString(message);
+        switch (msgType)
+        {
+        case msg_MOV:
+            
+            for(int cnt = 0;cnt < 2;cnt++){
+                if(mArg[cnt] == '\n') break;           
+                if(mArg[cnt] == 'U'){
+                    if(playerMove(game, currentPlayer, -1, 0) == false) break;
+                }
+                if(mArg[cnt] == 'D'){
+                    if(playerMove(game, currentPlayer, +1, 0) == false) break;
+                }                
+                if(mArg[cnt] == 'L'){
+                    if(playerMove(game, currentPlayer, 0, -1) == false) break;
+                }
+                if(mArg[cnt] == 'R'){
+                    if(playerMove(game, currentPlayer, 0, +1) == false) break;
+                }                                
+            }
+            break;
+        
+        case msg_SHOOT:
+            if(mArg[0] == 'U'){
+               playerShoot(game, currentPlayer, -1, 0);
+            }
+            if(mArg[0] == 'D'){
+                playerShoot(game, currentPlayer, +1, 0);
+            }                
+            if(mArg[0] == 'L'){
+                playerShoot(game, currentPlayer, 0, -1);
+            }
+            if(mArg[0] == 'R'){
+                playerShoot(game, currentPlayer, 0, +1);
+            }             
+            break;
 
+        case msg_SET:
+            playerSetBell(game, currentPlayer);            
+            break;
+
+        default:
+            break;
+        }
+        abandonMessage(&game->recv[currentPlayer]);
+    }
+    cancelGame(game);
+    pthread_exit(NULL);
 }
 
 int cancelGame(Game *game){

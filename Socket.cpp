@@ -1,6 +1,6 @@
 #include "Socket.h"
 
-int bufInsert(SocketBuf* socketBuf, char* str, int len){
+int bufInsert(SocketBuf* socketBuf, const char* str){
     pthread_mutex_lock(&socketBuf->socketMutex);
     messageInserst(&socketBuf->messageList, messageStrDup(str));
     pthread_mutex_unlock(&socketBuf->socketMutex);
@@ -24,22 +24,27 @@ void* socketRecvLoop(void* ctx){
 		FD_ZERO(&wfds);
 		FD_SET(socketBuf->socket,&rfds);
 		FD_SET(socketBuf->socket,&wfds);
-		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
+        TIMEVAL t;
+        t.tv_sec = maxWaitSec;
+		int nTotal = select(0, &rfds, &wfds, NULL, &t);
 		if(nTotal > 0){
 			if(FD_ISSET(socket, &rfds) ){
                 pthread_mutex_lock(&socketBuf->socketMutex);
 				int rtn = recv(socketBuf->socket, recvBuf, 256, 0);
 				if (rtn > 0) {
-					bufInsert(socketBuf, recvBuf, rtn);
+					bufInsert(socketBuf, recvBuf);
 				}else{
-                    char text[] = "ERR 1\n";
-					bufInsert(socketBuf, text, strlen(text));
+					bufInsert(socketBuf, "ERR 1\n");
                     pthread_mutex_unlock(&socketBuf->socketMutex);
                     pthread_exit(NULL);
 				}
                 pthread_mutex_unlock(&socketBuf->socketMutex);
 			}
-			
+		} else {
+            pthread_mutex_lock(&socketBuf->socketMutex);
+			bufInsert(socketBuf, "TIMEOUT 1\n");
+            pthread_mutex_unlock(&socketBuf->socketMutex);
+            pthread_exit(NULL);
 		}
     }
 	pthread_exit(NULL);
