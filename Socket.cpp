@@ -65,6 +65,7 @@ void* socketSendLoop(void* ctx){
     printf("Enter send loop %d\n", socketBuf->socket);
     while(1){
         printf("sem_wait: %x\n", &socketBuf->messageList.length);
+        
         sem_wait(&socketBuf->messageList.length);
         pthread_mutex_lock(&socketBuf->socketMutex);
         printf("send something: %d\n", socketBuf->socket);

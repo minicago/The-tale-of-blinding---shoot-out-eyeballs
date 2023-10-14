@@ -76,7 +76,7 @@ bool playerShoot(Game *game, int playerNum, int deltaX, int deltaY){
             if(locate(game, opposite(playerNum), nx, ny)) {
                 game->player[playerNum]->state = p_dead;
                 game->finished = true;
-                bufInsert(&game->send[opposite(playerNum)], "DEAD 1\n");
+                bufInsert(&game->send[opposite(playerNum)], "LOSE 1\n");
                 bufInsert(&game->send[playerNum], "WIN 1\n");
             }
             if(accessible(game,nx,ny) == m_bell) allCaptureVoice(game, nx, ny, v_dingdong, voiceRange[v_dingdong]);
@@ -193,8 +193,8 @@ void* gameLoop(void* ctx){
         {
         case msg_MOV:
             
-            for(int cnt = 0;cnt < 3;cnt++){
-                if(mArg[cnt] == '\n') break;           
+            for(int cnt = 0; cnt < 3; cnt++){
+                if(mArg[cnt] == '\n' || mArg[cnt] == '\0') break;           
                 if(mArg[cnt] == 'U'){
                     if(playerMove(game, currentPlayer, -1, 0) == false) break;
                 }
@@ -240,10 +240,17 @@ void* gameLoop(void* ctx){
 
 int cancelGame(Game *game){
     pthread_cancel(game->loopThread);
-    pthread_cancel(game->send[0].loopThread);
-    pthread_cancel(game->send[1].loopThread);
     pthread_cancel(game->recv[0].loopThread);
     pthread_cancel(game->recv[1].loopThread);
+    int x = 1; 
+    while(x != 0)
+       sem_getvalue(&game->send[0].messageList.length, &x);
+    int y = 1;
+    while(y != 0)
+       sem_getvalue(&game->send[1].messageList.length, &y);    
+    
+    pthread_cancel(game->send[0].loopThread);
+    pthread_cancel(game->send[1].loopThread);    
     //send socket & recv socket shares one
     closesocket(game->send[0].socket); 
     closesocket(game->send[1].socket);
