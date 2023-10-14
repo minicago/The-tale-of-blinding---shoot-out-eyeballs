@@ -4,7 +4,7 @@
 int bufInsert(SocketBuf* socketBuf, const char* str){
     pthread_mutex_lock(&socketBuf->socketMutex);
     for(const char *ptr = str; *ptr != '\0'; ptr += messageLength(str) ){
-        printf("ptr: %d\n", ptr - str);
+        DEBUG("ptr: %d\n", ptr - str);
         messageInsert(&socketBuf->messageList, messageStrDup(ptr));
     }
     pthread_mutex_unlock(&socketBuf->socketMutex);
@@ -28,7 +28,7 @@ int socketStart(SocketBuf* socketBuf, LoopFunc loopFunc){
 
 void* socketRecvLoop(void* ctx){
     SocketBuf* socketBuf = (SocketBuf*) ctx;
-    printf("Enter recv loop %d\n", socketBuf->socket);
+    DEBUG("Enter recv loop %d\n", socketBuf->socket);
     char recvBuf[maxBufLength];
     while(1){
         FD_SET rfds,wfds;
@@ -42,10 +42,10 @@ void* socketRecvLoop(void* ctx){
         
 		if(nTotal > 0){
 			if(FD_ISSET(socketBuf->socket, &rfds) ){
-                printf("Receive recv %d\n", socketBuf->socket);
+                DEBUG("Receive recv %d\n", socketBuf->socket);
                 //pthread_mutex_lock(&socketBuf->socketMutex);
 				int rtn = recv(socketBuf->socket, recvBuf, 128, 0);
-                printf("recv :%s !!\n" ,recvBuf);
+                DEBUG("recv :%s !!\n" ,recvBuf);
 				if (rtn > 0) {
                     recvBuf[rtn] = '\0';
 					bufInsert(socketBuf, recvBuf);
@@ -68,13 +68,13 @@ void* socketRecvLoop(void* ctx){
 
 void* socketSendLoop(void* ctx){
     SocketBuf* socketBuf = (SocketBuf*) ctx;
-    printf("Enter send loop %d\n", socketBuf->socket);
+    DEBUG("Enter send loop %d\n", socketBuf->socket);
     while(1){
-        //printf("sem_wait: %x\n", &socketBuf->messageList.length);
+        //DEBUG("sem_wait: %x\n", &socketBuf->messageList.length);
         
         sem_wait(&socketBuf->messageList.length);
         pthread_mutex_lock(&socketBuf->socketMutex);
-        printf("send something: %d %s\n", socketBuf->socket, socketBuf->messageList.head->message);
+        DEBUG("send something: %d %s\n", socketBuf->socket, socketBuf->messageList.head->message);
 
         send(socketBuf->socket, socketBuf->messageList.head->message, 128, 0);
         messagePop(&socketBuf->messageList);
@@ -83,14 +83,14 @@ void* socketSendLoop(void* ctx){
 }
 
 char* pullMessage(SocketBuf* socketBuf){
-    printf("sem_wait: %x\n", &socketBuf->messageList.length);
+    DEBUG("sem_wait: %x\n", &socketBuf->messageList.length);
     
     sem_wait(&socketBuf->messageList.length);
 
     pthread_mutex_lock(&socketBuf->socketMutex);
     char* rtn = socketBuf->messageList.head->message;
     pthread_mutex_unlock(&socketBuf->socketMutex);
-    
+
     return rtn;
 }
 

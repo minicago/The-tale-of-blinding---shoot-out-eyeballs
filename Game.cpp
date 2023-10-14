@@ -66,7 +66,7 @@ bool playerShoot(Game *game, int playerNum, int deltaX, int deltaY){
     if(game->player[playerNum]->state != p_active) return false; 
     game->player[playerNum]->state = p_onlyMove;
     bool heard = 0;
-    for(int nx = game->player[playerNum]->positionX + deltaX , ny = game->player[playerNum]->positionY + deltaY;
+    for(int nx = game->player[playerNum]->positionX , ny = game->player[playerNum]->positionY ;
     true; nx += deltaX, ny += deltaY){
         if(accessible(game,nx,ny) == m_blocked){
             allCaptureVoice(game, nx, ny, v_bump, voiceRange[v_bump]);
@@ -202,7 +202,7 @@ void* gameLoop(void* ctx){
 
             message = pullMessage(&game->recv[currentPlayer]);
 
-            printf("pull message: %s\n",message);
+            DEBUG("pull message: %s\n",message);
             if(messageParse(message) == msg_TIMEOUT){
                 abandonMessage(&game->recv[currentPlayer]);
                 if(game->recv[currentPlayer].messageList.head == NULL){
@@ -258,6 +258,8 @@ void* gameLoop(void* ctx){
             break;
         }
         abandonMessage(&game->recv[currentPlayer]);
+        bufInsert(&game->send[currentPlayer], "TEXT 0\n");
+        
     }
     
     pullMessage(&game->recv[0]);
@@ -300,7 +302,7 @@ void mapLog(Game *game){
 }
 
 int initClient(Game *game, SOCKET socket){
-    printf("initialized start\n");
+    DEBUG("initialized start\n");
     game->currentTurn = 0;
     game->player[0] = (Player*) malloc(sizeof(Player));
     game->player[0]->state = p_active;
@@ -309,12 +311,12 @@ int initClient(Game *game, SOCKET socket){
     game->player[1]->positionX = -1;
     game->player[1]->positionY = -1;    
     game->finished = false;
-    printf("game state initialized\n");
+    DEBUG("game state initialized\n");
     socketInit(&game->send[0], socket);
     socketInit(&game->recv[0], socket);   
     socketStart(&game->send[0], socketSendLoop);
     socketStart(&game->recv[0], socketRecvLoop);
-    printf("socket initialized\n");
+    DEBUG("socket initialized\n");
     return 0;
 }
 

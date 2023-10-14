@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include "winsock2.h"
 #include "Game.h"
 
@@ -15,21 +16,17 @@ const int MAX_Client = 256;
 struct Args{
 	unsigned int ip;
 	unsigned short port;
-	char* rootpath;
 };
 
 int arg_parse(Args *args,int argc,char* argv[]){
-	args->rootpath = strdup(".\\");
 	args->ip = 0;
 	args->port = 5050;
-	if(argc>4) goto err;
+	if(argc>3) goto err;
 	if(argc>1) args->ip = inet_addr(argv[1]);
 	if(args->ip==-1) goto err;
 	if(argc>2) args->port = atoi(argv[2]);
-	if(argc>3) args->rootpath = strdup(argv[3]);
 	return 0;
 err:
-	free(args->rootpath);
 	printf("Failed in arg parse!\n");
 	return 1;
 }
@@ -39,7 +36,6 @@ char rootpath[4096];
 int Set_addr(sockaddr_in *addr,Args args){
 	addr->sin_port = htons(args.port);
 	addr->sin_addr.S_un.S_addr = args.ip;
-	strcpy(rootpath, args.rootpath);
 	return 0;
 }
 
@@ -51,6 +47,8 @@ struct Room{
 
 
 int main(int argc,char* argv[]){
+
+	srand(time(NULL));
 
 	Args args;
 	arg_parse(&args,argc,argv);
@@ -115,7 +113,7 @@ int main(int argc,char* argv[]){
 		printf( "ioctlsocket() failed with error!\n");
 		return 0;
 	}
-	printf ("ioctlsocket() for server socket ok!	Waiting for client connection and data\n");
+	printf("ioctlsocket() for server socket ok!	Waiting for client connection and data\n");
 
 
 	FD_ZERO(&rfds);
@@ -159,7 +157,7 @@ int main(int argc,char* argv[]){
 					waiting = false;
 					rooms[i].playerNum = 2;
 					rooms[i].socket[1] = sessionSocket;
-					initGame(&rooms[i].game, 4, rooms[i].socket[0], rooms[i].socket[1]);
+					initGame(&rooms[i].game, 12, rooms[i].socket[0], rooms[i].socket[1]);
 					break;
 				}
 				else if(rooms[i].playerNum == 2){

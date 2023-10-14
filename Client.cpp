@@ -153,14 +153,14 @@ int main(int argc,char* argv[]){
 	//bufInsert(&game.send[0],"READY 0\n");
 
 	do {
-		printf("*************\n");
+		DEBUG("*************\n");
 		char *message;
 
         message = pullMessage(&game.recv[0]);
 
-		printf("pull done\n");
-		printf("messageadd:%x\n",message);
-		printf("message:%s\n",message);
+		DEBUG("pull done\n");
+		DEBUG("messageadd:%x\n",message);
+		DEBUG("message:%s\n",message);
 		MessageType msgType = messageParse(message);
         const char* mArg = messageString(message);
 		int mInt = messageInt(message);
@@ -175,7 +175,8 @@ int main(int argc,char* argv[]){
 			game.player[0]->positionY=mInt;
 			break;
 		case msg_TEXT:
-			printf("%s", mArg);
+			mapLog(&game);
+			printf("*************\n");
 			break;
 		case msg_LOSE:
 			printf("You lose!\n");
@@ -226,7 +227,9 @@ int main(int argc,char* argv[]){
 			break;
 		case msg_READY:
 			mapLog(&game);
+			printf("*************\n");
 			UI();
+			printf("*************\n");
 			break;
 		}
 		abandonMessage(&game.recv[0]);

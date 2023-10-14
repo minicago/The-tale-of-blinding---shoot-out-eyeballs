@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+
 #define MSGCMPCASE(str1, type) if(strPreCmp(str1, #type)) return msg_##type
 
 bool strPreCmp(const char* str, const char* pre){
@@ -65,13 +67,13 @@ void stringLog(const char *str){
 }
 
 int messageInsert(MessageList* messageList, char * message){
-    //printf("Begin Head:%x\n", messageList->head);
-    printf("message add:%x\n", message);
+    //DEBUG("Begin Head:%x\n", messageList->head);
+    DEBUG("message add:%x\n", message);
     Message *newMessage = (Message*) malloc(sizeof(Message));
-    printf("new message add:%x\n", newMessage);
-    printf("sem_post: %x\n", &messageList->length);
+    DEBUG("new message add:%x\n", newMessage);
+    DEBUG("sem_post: %x\n", &messageList->length);
     sem_post(&messageList->length);
-    printf("post_done\n");
+    DEBUG("post_done\n");
     newMessage->message = message;
     if(messageList->head == NULL){
         messageList->head = newMessage;
@@ -82,19 +84,19 @@ int messageInsert(MessageList* messageList, char * message){
         messageList->tail = messageList->tail->nxt;
         messageList->tail->nxt = NULL;
     }
-    // printf("End Head:%x\n", messageList->head);
+    // DEBUG("End Head:%x\n", messageList->head);
     return 0;
 }
 
 int messagePop(MessageList *messageList){
-    printf("messagePop:%x %s\n", messageList->head, messageList->head->message);
+    DEBUG("messagePop:%x %s\n", messageList->head, messageList->head->message);
     if(messageList->head == NULL) return -1;
     free(messageList->head->message);
-    //printf("free 1\n");
+    //DEBUG("free 1\n");
     Message *tmp= messageList->head;
     messageList->head = messageList->head->nxt;
     free(tmp);
-    //printf("free 2\n");
+    //DEBUG("free 2\n");
     return 0;
 }
 
@@ -108,7 +110,7 @@ char* messageStrDup(const char * message){
 }
 
 int messageListInit(MessageList *messageList){
-    //printf("sem_init: %x\n", &messageList->length);
+    //DEBUG("sem_init: %x\n", &messageList->length);
     int t=sem_init(&messageList->length, 0, 0);
     messageList->head = NULL;
     return 0;

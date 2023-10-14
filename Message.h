@@ -1,6 +1,11 @@
 #ifndef Message__h
 #define Message__h
 
+#ifdef RELEASE
+#define DEBUG(...) 
+#else
+#define DEBUG(...) printf(__VA_ARGS__)
+#endif
 #include <semaphore.h>
 #pragma comment(lib, "pthreadVC2.lib")
 
