@@ -199,7 +199,9 @@ void* gameLoop(void* ctx){
         bufInsert(&game->send[currentPlayer], "READY 0\n");
         char *message;
         while(1){
+
             message = pullMessage(&game->recv[currentPlayer]);
+
             printf("pull message: %s\n",message);
             if(messageParse(message) == msg_TIMEOUT){
                 abandonMessage(&game->recv[currentPlayer]);
@@ -257,6 +259,11 @@ void* gameLoop(void* ctx){
         }
         abandonMessage(&game->recv[currentPlayer]);
     }
+    
+    pullMessage(&game->recv[0]);
+    pullMessage(&game->recv[1]);
+    abandonMessage(&game->recv[0]);
+    abandonMessage(&game->recv[1]);
     cancelGame(game);
     pthread_exit(NULL);
     return NULL;
@@ -266,18 +273,6 @@ int cancelGame(Game *game){
     pthread_cancel(game->loopThread);
     pthread_cancel(game->recv[0].loopThread);
     pthread_cancel(game->recv[1].loopThread);
-    int x = 1; 
-    while(x != 0)
-       sem_getvalue(&game->send[0].messageList.length, &x);
-    int y = 1;
-    while(y != 0)
-       sem_getvalue(&game->send[1].messageList.length, &y);  
-    while(game->recv[0].messageList.head != NULL){
-        abandonMessage(&game->recv[0]);
-    }
-    while(game->recv[1].messageList.head != NULL){
-        abandonMessage(&game->recv[1]);
-    }    
     pthread_cancel(game->send[0].loopThread);
     pthread_cancel(game->send[1].loopThread);    
     //send socket & recv socket shares one
@@ -285,6 +280,7 @@ int cancelGame(Game *game){
     closesocket(game->send[1].socket);
     free(game->player[0]);
     free(game->player[1]);
+    game->finished = true;
     return 0;
 }
 

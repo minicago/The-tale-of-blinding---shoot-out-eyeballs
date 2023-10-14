@@ -78,7 +78,7 @@ void UI(){
 				printf("No bell now!\n");
 				continue;
 			}
-			bufInsert(&game.send[0], "SET\n");
+			bufInsert(&game.send[0], "SET 0\n");
 			break;
 		}
 	}
@@ -155,7 +155,10 @@ int main(int argc,char* argv[]){
 	do {
 		printf("*************\n");
 		char *message;
+
         message = pullMessage(&game.recv[0]);
+
+		printf("pull done\n");
 		printf("messageadd:%x\n",message);
 		printf("message:%s\n",message);
 		MessageType msgType = messageParse(message);
@@ -177,10 +180,12 @@ int main(int argc,char* argv[]){
 		case msg_LOSE:
 			printf("You lose!\n");
 			game.finished = true;
+			bufInsert(&game.send[0], "READY 0\n");
 			break;
 		case msg_WIN:
 			printf("You win!\n");
-			game.finished = true;			
+			game.finished = true;
+			bufInsert(&game.send[0], "READY 0\n");		
 			break;
 		case msg_MOV:
 			if(mInt == 0){

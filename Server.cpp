@@ -43,7 +43,11 @@ int Set_addr(sockaddr_in *addr,Args args){
 	return 0;
 }
 
-Game g;
+struct Room{
+	SOCKET socket[2];
+	Game game;
+	int playerNum;
+}rooms[MAX_Client];
 
 
 int main(int argc,char* argv[]){
@@ -149,13 +153,37 @@ int main(int argc,char* argv[]){
 
 			//FD_SET(sessionSocket, &rfds);
 			//FD_SET(sessionSocket, &wfds);
-			if(!waiting){
+			bool waiting = true;
+			for(int i = 0; i <= MAX_Client; i++){
+				if(rooms[i].playerNum == 1){
+					waiting = false;
+					rooms[i].playerNum = 2;
+					rooms[i].socket[1] = sessionSocket;
+					initGame(&rooms[i].game, 4, rooms[i].socket[0], rooms[i].socket[1]);
+					break;
+				}
+				else if(rooms[i].playerNum == 2){
+					if(rooms[i].game.finished) rooms[i].playerNum = 0;
+				}
+			}
+			if(waiting){
+				for(int i = 0; i <= MAX_Client; i++){
+					if(rooms[i].playerNum == 0){
+						waiting = false;
+						rooms[i].playerNum = 1;
+						rooms[i].socket[0] = sessionSocket;
+						break;
+					}
+				}				
+			}
+			if(waiting) closesocket(sessionSocket);
+			/*if(!waiting){
 				waiting = 1;
 				tmp = sessionSocket;
 			}else{
 				initGame(&g, 12, tmp, sessionSocket);
 				break;
-			}
+			}*/
 			
 			
 			//first_connetion = false;
@@ -163,6 +191,5 @@ int main(int argc,char* argv[]){
 		
 		
 	}
-	pthread_join(g.loopThread, NULL);
 	return 0;
 }

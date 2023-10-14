@@ -66,20 +66,23 @@ void stringLog(const char *str){
 
 int messageInsert(MessageList* messageList, char * message){
     //printf("Begin Head:%x\n", messageList->head);
+    printf("message add:%x\n", message);
+    Message *newMessage = (Message*) malloc(sizeof(Message));
+    printf("new message add:%x\n", newMessage);
     printf("sem_post: %x\n", &messageList->length);
     sem_post(&messageList->length);
+    printf("post_done\n");
+    newMessage->message = message;
     if(messageList->head == NULL){
-        messageList->head = (Message*) malloc(sizeof(Message));
-        messageList->head->message = message;
+        messageList->head = newMessage;
         messageList->tail = messageList->head;
         messageList->head->nxt = NULL;
     }else{
-        messageList->tail->nxt = (Message*) malloc(sizeof(Message));
+        messageList->tail->nxt = newMessage;
         messageList->tail = messageList->tail->nxt;
-        messageList->tail->message = message;
         messageList->tail->nxt = NULL;
     }
-    //printf("End Head:%x\n", messageList->head);
+    // printf("End Head:%x\n", messageList->head);
     return 0;
 }
 
