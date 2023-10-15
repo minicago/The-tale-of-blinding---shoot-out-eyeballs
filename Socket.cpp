@@ -31,37 +31,19 @@ void* socketRecvLoop(void* ctx){
     DEBUG("Enter recv loop %d\n", socketBuf->socket);
     char recvBuf[maxBufLength];
     while(1){
-        FD_SET rfds,wfds;
-		FD_ZERO(&rfds);
-		FD_SET(socketBuf->socket,&rfds);
-        FD_ZERO(&wfds);
-		FD_SET(socketBuf->socket,&wfds);
-        TIMEVAL t;
-        t.tv_sec = maxWaitSec;
-		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
-        
-		if(nTotal > 0){
-			if(FD_ISSET(socketBuf->socket, &rfds) ){
-                DEBUG("Receive recv %d\n", socketBuf->socket);
-                //pthread_mutex_lock(&socketBuf->socketMutex);
-				int rtn = recv(socketBuf->socket, recvBuf, 128, 0);
-                DEBUG("recv :%s !!\n" ,recvBuf);
-				if (rtn > 0) {
-                    recvBuf[rtn] = '\0';
-					bufInsert(socketBuf, recvBuf);
-				}else{
-					bufInsert(socketBuf, "ERR 1\n");
-                    pthread_mutex_unlock(&socketBuf->socketMutex);
-                    pthread_exit(NULL);
-				}
-                //pthread_mutex_unlock(&socketBuf->socketMutex);
-			}
-		} else {
-            pthread_mutex_lock(&socketBuf->socketMutex);
-			bufInsert(socketBuf, "TIMEOUT 1\n");
+
+        DEBUG("Receive recv %d\n", socketBuf->socket);
+		int rtn = recv(socketBuf->socket, recvBuf, 128, 0);
+        DEBUG("recv :%s !!\n" ,recvBuf);
+		if (rtn > 0) {
+            recvBuf[rtn] = '\0';
+			bufInsert(socketBuf, recvBuf);
+		}else{
+			bufInsert(socketBuf, "ERR 1\n");
             pthread_mutex_unlock(&socketBuf->socketMutex);
             pthread_exit(NULL);
 		}
+			
     }
 	pthread_exit(NULL);
 }

@@ -53,9 +53,7 @@ int main(int argc,char* argv[]){
 	Args args;
 	arg_parse(&args,argc,argv);
 
-	WSADATA wsaData;
-	fd_set rfds;				
-	fd_set wfds;				
+	WSADATA wsaData;			
 	bool first_connetion = true;
 
 	int nRc = WSAStartup(0x0202,&wsaData);	
@@ -109,80 +107,42 @@ int main(int argc,char* argv[]){
 
 	u_long blockMode = 1;
 
-	if ((rtn = ioctlsocket(srvSocket, FIONBIO, &blockMode) == SOCKET_ERROR)) { 
+	/*if ((rtn = ioctlsocket(srvSocket, FIONBIO, &blockMode) == SOCKET_ERROR)) { 
 		printf( "ioctlsocket() failed with error!\n");
 		return 0;
 	}
-	printf("ioctlsocket() for server socket ok!	Waiting for client connection and data\n");
-
-
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-
-	
-	FD_SET(srvSocket, &rfds);
-
-	SOCKET tmp;
+	printf("ioctlsocket() for server socket ok!	Waiting for client connection and data\n");*/
 
 	while(true){
-		
-		FD_ZERO(&rfds);
-		FD_ZERO(&wfds);
+		SOCKET sessionSocket = accept(srvSocket, (LPSOCKADDR)&clientAddr, &addrLen);
+		printf("Client ip: %s Client port: %d\n",inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+		if (sessionSocket != INVALID_SOCKET)
+			printf("Socket listen one client request!\n");
 
-
-		FD_SET(srvSocket, &rfds);
-
-		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
-
-		if (FD_ISSET(srvSocket, &rfds)) {
-			nTotal--;
-			SOCKET sessionSocket = accept(srvSocket, (LPSOCKADDR)&clientAddr, &addrLen);
-			printf("Client ip: %s Client port: %d\n",inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
-			if (sessionSocket != INVALID_SOCKET)
-				printf("Socket listen one client request!\n");
-
-			if ((rtn = ioctlsocket(sessionSocket, FIONBIO, &blockMode) == SOCKET_ERROR)) { 
-				printf( "ioctlsocket() failed with error!\n");
-				return 0;
+		bool waiting = true;
+		for(int i = 0; i <= MAX_Client; i++){
+			if(rooms[i].playerNum == 1){
+				waiting = false;
+				rooms[i].playerNum = 2;
+				rooms[i].socket[1] = sessionSocket;
+				initGame(&rooms[i].game, 12, rooms[i].socket[0], rooms[i].socket[1]);
+				break;
 			}
-			printf( "ioctlsocket() for session socket ok!	Waiting for client connection and data\n");
-
-			bool waiting = true;
+			else if(rooms[i].playerNum == 2){
+				if(rooms[i].game.finished) rooms[i].playerNum = 0;
+			}
+		}
+		if(waiting){
 			for(int i = 0; i <= MAX_Client; i++){
-				if(rooms[i].playerNum == 1){
+				if(rooms[i].playerNum == 0){
 					waiting = false;
-					rooms[i].playerNum = 2;
-					rooms[i].socket[1] = sessionSocket;
-					initGame(&rooms[i].game, 12, rooms[i].socket[0], rooms[i].socket[1]);
+					rooms[i].playerNum = 1;
+					rooms[i].socket[0] = sessionSocket;
 					break;
 				}
-				else if(rooms[i].playerNum == 2){
-					if(rooms[i].game.finished) rooms[i].playerNum = 0;
-				}
-			}
-			if(waiting){
-				for(int i = 0; i <= MAX_Client; i++){
-					if(rooms[i].playerNum == 0){
-						waiting = false;
-						rooms[i].playerNum = 1;
-						rooms[i].socket[0] = sessionSocket;
-						break;
-					}
-				}				
-			}
-			if(waiting) closesocket(sessionSocket);
-			/*if(!waiting){
-				waiting = 1;
-				tmp = sessionSocket;
-			}else{
-				initGame(&g, 12, tmp, sessionSocket);
-				break;
-			}*/
-			
-			
-			//first_connetion = false;
+			}				
 		}
-		
+		if(waiting) closesocket(sessionSocket);
 		
 	}
 	return 0;
