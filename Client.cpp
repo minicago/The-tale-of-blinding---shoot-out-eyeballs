@@ -202,7 +202,7 @@ int main(int argc,char* argv[]){
 					if(game.player[0]->positionY > 0) game.map[game.player[0]->positionX][game.player[0]->positionY - 1] = m_blocked;
 				}
 				if(tmp == 'R'){
-					if(game.player[0]->positionY < game.mapSize - 1) game.map[game.player[0]->positionX][game.player[0]->positionY - 1] = m_blocked;
+					if(game.player[0]->positionY < game.mapSize - 1) game.map[game.player[0]->positionX][game.player[0]->positionY + 1] = m_blocked;
 				}
 				while(!movq.empty()) movq.pop();
 			} else {
