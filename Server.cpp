@@ -122,8 +122,6 @@ int main(int argc,char* argv[]){
 	
 	FD_SET(srvSocket, &rfds);
 
-
-	bool waiting = 0;
 	SOCKET tmp;
 
 	while(true){
@@ -149,8 +147,6 @@ int main(int argc,char* argv[]){
 			}
 			printf( "ioctlsocket() for session socket ok!	Waiting for client connection and data\n");
 
-			//FD_SET(sessionSocket, &rfds);
-			//FD_SET(sessionSocket, &wfds);
 			bool waiting = true;
 			for(int i = 0; i <= MAX_Client; i++){
 				if(rooms[i].playerNum == 1){
