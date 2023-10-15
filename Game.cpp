@@ -278,8 +278,8 @@ int cancelGame(Game *game){
     pthread_cancel(game->send[0].loopThread);
     pthread_cancel(game->send[1].loopThread);    
     //send socket & recv socket shares one
-    closesocket(game->send[0].socket); 
-    closesocket(game->send[1].socket);
+    close(game->send[0].socket); 
+    close(game->send[1].socket);
     free(game->player[0]);
     free(game->player[1]);
     game->finished = true;

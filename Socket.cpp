@@ -1,5 +1,9 @@
 #include "Socket.h"
 #include <stdio.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+
 
 int bufInsert(SocketBuf* socketBuf, const char* str){
     pthread_mutex_lock(&socketBuf->socketMutex);
@@ -31,14 +35,14 @@ void* socketRecvLoop(void* ctx){
     DEBUG("Enter recv loop %d\n", socketBuf->socket);
     char recvBuf[maxBufLength];
     while(1){
-        FD_SET rfds,wfds;
+        fd_set rfds,wfds;
 		FD_ZERO(&rfds);
 		FD_SET(socketBuf->socket,&rfds);
         FD_ZERO(&wfds);
 		FD_SET(socketBuf->socket,&wfds);
-        TIMEVAL t;
+        timeval t;
         t.tv_sec = maxWaitSec;
-		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
+		int nTotal = select(1024, &rfds, &wfds, &rfds, &t);
         
 		if(nTotal > 0){
 			if(FD_ISSET(socketBuf->socket, &rfds) ){

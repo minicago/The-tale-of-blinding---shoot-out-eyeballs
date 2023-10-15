@@ -1,12 +1,14 @@
 libcpp := Message.cpp Socket.cpp Game.cpp
 libh := Message.h Socket.h Game.h
-all : Server.exe Client.exe
+all : Server.out Client.out
 
-Server.exe : Server.cpp $(libcpp) $(libh)
-	g++ $(libcpp) Server.cpp -o Server.exe -lwsock32
-Client.exe : Client.cpp $(libcpp) $(libh)
-	g++ -DRELEASE $(libcpp) Client.cpp -o Client.exe -lwsock32
+
+Server.out : Server.cpp $(libcpp) $(libh)
+	g++ $(libcpp) Server.cpp -o Server.out -lpthread
+
+Client.out : Client.cpp $(libcpp) $(libh)
+	g++ -DRELEASE $(libcpp) Client.cpp -o Client.out -lpthread
 
 .PHONY: clean
 clean : 
-	del *.exe
+	rm *.out

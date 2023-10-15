@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
-#include "winsock2.h"
 #include "Game.h"
 
 #pragma comment(lib,"ws2_32.lib")
@@ -35,7 +34,7 @@ char rootpath[4096];
 
 int Set_addr(sockaddr_in *addr,Args args){
 	addr->sin_port = htons(args.port);
-	addr->sin_addr.S_un.S_addr = args.ip;
+	addr->sin_addr.s_addr = args.ip;
 	return 0;
 }
 
@@ -53,20 +52,10 @@ int main(int argc,char* argv[]){
 	Args args;
 	arg_parse(&args,argc,argv);
 
-	WSADATA wsaData;
 	fd_set rfds;				
 	fd_set wfds;				
 	bool first_connetion = true;
 
-	int nRc = WSAStartup(0x0202,&wsaData);	
-
-	if(nRc){
-		printf("Winsock  startup failed with error!\n");
-	}
-
-	if(wsaData.wVersion != 0x0202){
-		printf("Winsock version is not correct!\n");
-	}
 
 	printf("Winsock  startup Ok!\n");
 
@@ -75,10 +64,10 @@ int main(int argc,char* argv[]){
 	sockaddr_in addr,clientAddr;
 	//SOCKET sessionSocket;
 	
-	int addrLen;
+	socklen_t addrLen;
 	//create socket
 	srvSocket = socket(AF_INET,SOCK_STREAM,0);
-	if(srvSocket != INVALID_SOCKET)
+	if(srvSocket != -1)
 		printf("Socket create Ok!\n");
 	//set port and ip
 	addr.sin_family = AF_INET;
@@ -88,20 +77,20 @@ int main(int argc,char* argv[]){
 	Set_addr(&addr,args);
 	//binding
 	
-	int rtn = bind(srvSocket,(LPSOCKADDR)&addr,sizeof(addr));
-	if(rtn != SOCKET_ERROR)
+	int rtn = bind(srvSocket, (struct sockaddr*) &addr, sizeof(addr));
+	if(rtn != -1)
 		printf("Socket bind Ok!\n");
 	else {
 		printf("Socket bind Error!\n");
-		return SOCKET_ERROR;
+		return -1;
 	}
 	//listen
 	rtn = listen(srvSocket,5);
-	if(rtn != SOCKET_ERROR)
+	if(rtn != -1)
 		printf("Socket listen Ok!\n");
 	else{
 		printf("Socket listen Error!\n");
-		return SOCKET_ERROR;		
+		return -1;		
 	}
 	clientAddr.sin_family =AF_INET;
 	addrLen = sizeof(clientAddr);
@@ -109,11 +98,7 @@ int main(int argc,char* argv[]){
 
 	u_long blockMode = 1;
 
-	if ((rtn = ioctlsocket(srvSocket, FIONBIO, &blockMode) == SOCKET_ERROR)) { 
-		printf( "ioctlsocket() failed with error!\n");
-		return 0;
-	}
-	printf("ioctlsocket() for server socket ok!	Waiting for client connection and data\n");
+	fcntl(srvSocket, F_SETFL, O_NONBLOCK);
 
 
 	FD_ZERO(&rfds);
@@ -132,20 +117,16 @@ int main(int argc,char* argv[]){
 
 		FD_SET(srvSocket, &rfds);
 
-		int nTotal = select(0, &rfds, &wfds, NULL, NULL);
+		int nTotal = select(1024, &rfds, &wfds, NULL, NULL);
 
 		if (FD_ISSET(srvSocket, &rfds)) {
 			nTotal--;
-			SOCKET sessionSocket = accept(srvSocket, (LPSOCKADDR)&clientAddr, &addrLen);
+			SOCKET sessionSocket = accept(srvSocket,(sockaddr*) &clientAddr, &addrLen);
 			printf("Client ip: %s Client port: %d\n",inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
-			if (sessionSocket != INVALID_SOCKET)
+			if (sessionSocket != -1)
 				printf("Socket listen one client request!\n");
 
-			if ((rtn = ioctlsocket(sessionSocket, FIONBIO, &blockMode) == SOCKET_ERROR)) { 
-				printf( "ioctlsocket() failed with error!\n");
-				return 0;
-			}
-			printf( "ioctlsocket() for session socket ok!	Waiting for client connection and data\n");
+				fcntl(sessionSocket, F_SETFL, O_NONBLOCK);
 
 			bool waiting = true;
 			for(int i = 0; i <= MAX_Client; i++){
@@ -170,7 +151,7 @@ int main(int argc,char* argv[]){
 					}
 				}				
 			}
-			if(waiting) closesocket(sessionSocket);
+			if(waiting) close(sessionSocket);
 			/*if(!waiting){
 				waiting = 1;
 				tmp = sessionSocket;

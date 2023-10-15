@@ -1,15 +1,23 @@
 #ifndef Socket__h
 #define Socket__h
 
-#include "winsock2.h"
 #include "Message.h"
 #include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
 #pragma comment(lib,"ws2_32.lib")
 
 const int maxBufLength = 4096;
 const int maxRecycleLength = 1024;
 
 const int maxWaitSec = 120;
+
+typedef int SOCKET;
 
 struct SocketBuf{
     SOCKET socket;

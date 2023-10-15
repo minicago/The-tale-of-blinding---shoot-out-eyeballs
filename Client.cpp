@@ -1,4 +1,3 @@
-#include "winsock2.h"
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -33,13 +32,11 @@ int Set_addr(sockaddr_in *addr,Args args){
 	//printf("%llu %u\n",args.port,args.ip);
 	(addr->sin_port) = htons(args.port);
 	
-	(addr->sin_addr).S_un.S_addr = args.ip;
+	(addr->sin_addr).s_addr = args.ip;
 	return 0;
 }
 
 char recvBuf[4096];
-
-pthread_mutex_t lock1;
 
 Game game;
 
@@ -89,22 +86,11 @@ void UI(){
 }
 
 int main(int argc,char* argv[]){
-	pthread_mutex_init(&lock1,NULL);
-	WSADATA wsaData;
 	string input;
 	Args args;
 	pthread_t readthread;
 	arg_parse(&args,argc,argv);
 
-	int nRc = WSAStartup(0x0202,&wsaData);
-
-	if(nRc){
-		printf("Winsock  startup failed with error!\n");
-	}
-
-	if(wsaData.wVersion != 0x0202){
-		printf("Winsock version is not correct!\n");
-	}
 
 	printf("Winsock  startup Ok!\n");
 
@@ -117,25 +103,25 @@ int main(int argc,char* argv[]){
 	//create socket
 	clientSocket = socket(AF_INET,SOCK_STREAM,0);
 
-	if(clientSocket != INVALID_SOCKET)
+	if(clientSocket != -1)
 		printf("Socket create Ok!\n");
 
 	//set client port and ip
 	clientAddr.sin_family = AF_INET;
 	
 	clientAddr.sin_port = htons(0);
-	clientAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	clientAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	 
 	//binding
-	int rtn = bind(clientSocket,(LPSOCKADDR)&clientAddr,sizeof(clientAddr));
-	if(rtn != SOCKET_ERROR)
+	int rtn = bind(clientSocket,(sockaddr*)&clientAddr,sizeof(clientAddr));
+	if(rtn != -1)
 		printf("Socket bind Ok!\n");
 
 	serverAddr.sin_family = AF_INET;
 	Set_addr(&serverAddr,args);
 
-	rtn = connect(clientSocket,(LPSOCKADDR)&serverAddr,sizeof(serverAddr));
-	if(rtn == SOCKET_ERROR )
+	rtn = connect(clientSocket,(sockaddr*)&serverAddr,sizeof(serverAddr));
+	if(rtn == -1 )
 	{
 		printf("Connect to server error!\n");
 		return 0;
@@ -235,7 +221,6 @@ int main(int argc,char* argv[]){
 		}
 		abandonMessage(&game.recv[0]);
 	}while(!game.finished);
-	closesocket(clientSocket);
-	WSACleanup();
+	close(clientSocket);
 }
 //10.12.56.97

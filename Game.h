@@ -1,7 +1,6 @@
 #ifndef Game__h
 #define Game__h
 
-#include "winsock2.h"
 #include "Socket.h"
 #pragma comment(lib,"ws2_32.lib")
 
