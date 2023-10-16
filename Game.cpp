@@ -194,7 +194,6 @@ void* gameLoop(void* ctx){
     while(!game->finished){
         mapLog(game);
         game->currentTurn ++;
-        printf("Turn: %d\n",  game->currentTurn );
         SHOW(game->currentTurn);
         int currentPlayer = game->currentTurn & 1;
         bufInsert(&game->send[currentPlayer], "READY 0\n");
@@ -255,6 +254,14 @@ void* gameLoop(void* ctx){
             playerSetBell(game, currentPlayer);            
             break;
 
+        case msg_ERR:
+            game->finished = true;
+            bufInsert(&game->send[opposite(currentPlayer)], "ERR 1\n");
+            pullMessage(&game->recv[opposite(currentPlayer)]);
+            pthread_exit(NULL);  
+                      
+            break;
+
         default:
             break;
         }
@@ -267,12 +274,13 @@ void* gameLoop(void* ctx){
     pullMessage(&game->recv[1]);
     abandonMessage(&game->recv[0]);
     abandonMessage(&game->recv[1]);
-    cancelGame(game);
+
     pthread_exit(NULL);
     return NULL;
 }
 
 int cancelGame(Game *game){
+    DEBUG("CANCEL GAME **************\n");
     pthread_cancel(game->loopThread);
     pthread_cancel(game->recv[0].loopThread);
     pthread_cancel(game->recv[1].loopThread);
@@ -283,7 +291,6 @@ int cancelGame(Game *game){
     closesocket(game->send[1].socket);
     free(game->player[0]);
     free(game->player[1]);
-    game->finished = true;
     return 0;
 }
 

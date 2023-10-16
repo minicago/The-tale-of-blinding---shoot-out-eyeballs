@@ -15,7 +15,6 @@ int Set_addr(sockaddr_in *addr,Args args){
 int bufInsert(SocketBuf* socketBuf, const char* str){
     pthread_mutex_lock(&socketBuf->socketMutex);
     for(const char *ptr = str; *ptr != '\0'; ptr += messageLength(str) ){
-        DEBUG("ptr: %d\n", ptr - str);
         messageInsert(&socketBuf->messageList, messageStrDup(ptr));
     }
     pthread_mutex_unlock(&socketBuf->socketMutex);
@@ -69,7 +68,7 @@ void* socketSendLoop(void* ctx){
         pthread_mutex_lock(&socketBuf->socketMutex);
         DEBUG("send something: %d %s\n", socketBuf->socket, socketBuf->messageList.head->message);
 
-        send(socketBuf->socket, socketBuf->messageList.head->message, 128, 0);
+        send(socketBuf->socket, socketBuf->messageList.head->message, 128, MSG_NOSIGNAL);
         messagePop(&socketBuf->messageList);
         pthread_mutex_unlock(&socketBuf->socketMutex);
     }

@@ -104,7 +104,10 @@ int main(int argc,char* argv[]){
 				break;
 			}
 			else if(rooms[i].playerNum == 2){
-				if(rooms[i].game.finished) rooms[i].playerNum = 0;
+				if(rooms[i].game.finished) {
+					rooms[i].playerNum = 0;
+					cancelGame(&rooms[i].game);
+				}
 			}
 		}
 		if(waiting){

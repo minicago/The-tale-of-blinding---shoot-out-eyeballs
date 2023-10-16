@@ -6,7 +6,7 @@
 #define SHOW(X)
 #else
 #define DEBUG(...) printf(__VA_ARGS__)
-#define SHOW(X) printf(#X"=%d",(X))
+#define SHOW(X) printf(#X"=%d\n",(X))
 #endif
 #include <semaphore.h>
 #pragma comment(lib, "pthreadVC2.lib")
@@ -28,6 +28,7 @@ enum MessageType{
     msg_POSITIONX = 13,
     msg_POSITIONY = 14,
     msg_MAPSIZE = 15,
+    msg_ERR = 16,
 };
 
 struct Message{

@@ -184,8 +184,8 @@ int main(int argc,char* argv[]){
         message = pullMessage(&game.recv[0]);
 
 		DEBUG("pull done\n");
-		DEBUG("messageadd:%x\n",message);
 		DEBUG("message:%s\n",message);
+		
 		MessageType msgType = messageParse(message);
         const char* mArg = messageString(message);
 		int mInt = messageInt(message);
@@ -257,7 +257,15 @@ int main(int argc,char* argv[]){
 			while(!UI()) printf("\n");
 			
 			break;
+		case msg_ERR:
+			printf("Disconnected from server for some reason.\n");
+			if(mInt == 1) printf("Your opposite is leaving!\n");
+			else printf("Unknown reason.");
+			bufInsert(&game.send[0], "ERR 0\n");
+			break;
 		}
+		
+
 		abandonMessage(&game.recv[0]);
 	}while(!game.finished);
 	closesocket(clientSocket);

@@ -29,6 +29,7 @@ MessageType messageParse(const char *message){
     MSGCMPCASE(message,POSITIONX);
     MSGCMPCASE(message,POSITIONY);
     MSGCMPCASE(message,MAPSIZE);
+    MSGCMPCASE(message,ERR);
     return msg_UNKNOWN;
 }
 
@@ -68,12 +69,9 @@ void stringLog(const char *str){
 
 int messageInsert(MessageList* messageList, char * message){
     //DEBUG("Begin Head:%x\n", messageList->head);
-    DEBUG("message add:%x\n", message);
     Message *newMessage = (Message*) malloc(sizeof(Message));
-    DEBUG("new message add:%x\n", newMessage);
     DEBUG("sem_post: %x\n", &messageList->length);
     sem_post(&messageList->length);
-    DEBUG("post_done\n");
     newMessage->message = message;
     if(messageList->head == NULL){
         messageList->head = newMessage;
