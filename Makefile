@@ -5,7 +5,7 @@ Windows : Server.exe Client.exe
 Server.exe : Server.cpp $(libcpp) $(libh)
 	g++ $(libcpp) Server.cpp -o Server.exe -lwsock32
 Client.exe : Client.cpp $(libcpp) $(libh)
-	g++ -DRELEASE $(libcpp) Client.cpp -o Client.exe -lwsock32 
+	g++ -static -DRELEASE $(libcpp) Client.cpp -o Client.exe -lwsock32 
 
 Linux : Server.out Client.out
 Server.out : Server.cpp $(libcpp) $(libh)
