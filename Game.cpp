@@ -195,6 +195,7 @@ void* gameLoop(void* ctx){
         mapLog(game);
         game->currentTurn ++;
         printf("Turn: %d\n",  game->currentTurn );
+        SHOW(game->currentTurn);
         int currentPlayer = game->currentTurn & 1;
         bufInsert(&game->send[currentPlayer], "READY 0\n");
         char *message;

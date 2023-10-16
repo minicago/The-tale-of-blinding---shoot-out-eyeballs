@@ -3,8 +3,10 @@
 
 #ifdef RELEASE
 #define DEBUG(...) 
+#define SHOW(X)
 #else
 #define DEBUG(...) printf(__VA_ARGS__)
+#define SHOW(X) printf(#X"=%d",(X))
 #endif
 #include <semaphore.h>
 #pragma comment(lib, "pthreadVC2.lib")

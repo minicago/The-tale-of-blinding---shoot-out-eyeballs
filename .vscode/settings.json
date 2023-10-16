@@ -64,6 +64,7 @@
     "type_traits": "cpp",
     "utility": "cpp",
     "*.rh": "cpp",
-    "system_error": "cpp"
+    "system_error": "cpp",
+    "vector": "cpp"
   }
 }

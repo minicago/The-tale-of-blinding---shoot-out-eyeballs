@@ -6,10 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
-#include "winsock2.h"
 #include "Game.h"
-
-#pragma comment(lib,"ws2_32.lib")
 
 const int MAX_Client = 256;
 
@@ -52,22 +49,17 @@ int main(int argc,char* argv[]){
 
 	Args args;
 	arg_parse(&args,argc,argv);
-
+#ifdef WIN32
 	WSADATA wsaData;			
-	bool first_connetion = true;
-
 	int nRc = WSAStartup(0x0202,&wsaData);	
-
 	if(nRc){
 		printf("Winsock  startup failed with error!\n");
 	}
-
 	if(wsaData.wVersion != 0x0202){
 		printf("Winsock version is not correct!\n");
 	}
-
 	printf("Winsock  startup Ok!\n");
-
+#endif
 
 	SOCKET srvSocket;
 	sockaddr_in addr,clientAddr;
@@ -80,8 +72,6 @@ int main(int argc,char* argv[]){
 		printf("Socket create Ok!\n");
 	//set port and ip
 	addr.sin_family = AF_INET;
-	/*addr.sin_port = htons(5050);
-	addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);*/
 
 	Set_addr(&addr,args);
 	//binding
@@ -104,14 +94,6 @@ int main(int argc,char* argv[]){
 	clientAddr.sin_family =AF_INET;
 	addrLen = sizeof(clientAddr);
 	char recvBuf[4096];
-
-	u_long blockMode = 1;
-
-	/*if ((rtn = ioctlsocket(srvSocket, FIONBIO, &blockMode) == SOCKET_ERROR)) { 
-		printf( "ioctlsocket() failed with error!\n");
-		return 0;
-	}
-	printf("ioctlsocket() for server socket ok!	Waiting for client connection and data\n");*/
 
 	while(true){
 		SOCKET sessionSocket = accept(srvSocket, (LPSOCKADDR)&clientAddr, &addrLen);

@@ -1,10 +1,15 @@
 #ifndef Socket__h
 #define Socket__h
 
-#include "winsock2.h"
 #include "Message.h"
 #include <pthread.h>
+
+#ifdef WIN32
+
+#include "winsock2.h"
 #pragma comment(lib,"ws2_32.lib")
+
+#endif
 
 const int maxBufLength = 4096;
 const int maxRecycleLength = 1024;

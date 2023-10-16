@@ -1,5 +1,5 @@
-libcpp := Message.cpp Socket.cpp Game.cpp
-libh := Message.h Socket.h Game.h
+libcpp := Message.cpp Socket.cpp Game.cpp UI.cpp
+libh := Message.h Socket.h Game.h UI.h
 all : Server.exe Client.exe
 
 Server.exe : Server.cpp $(libcpp) $(libh)

@@ -1,12 +1,13 @@
-#include "winsock2.h"
 #include <stdio.h>
 #include <iostream>
 #include <string>
 #include <pthread.h>
 #include "Game.h"
 #include <queue>
+#include <conio.h>
+#include <stdlib.h>
 
-#pragma comment(lib,"ws2_32.lib")
+#include "UI.h"
 
 using namespace std;
 queue<char> movq;
@@ -21,8 +22,28 @@ int arg_parse(Args *args,int argc,char* argv[]){
 	args->port = 5050;
 	if(argc>3) goto err;
 	if(argc>1) args->ip = inet_addr(argv[1]);
+	else{
+		char ipstr[2048];
+		printf("********************\n");
+		printf("* Input server IP  *\n");
+		printf("* '0'  to default  *\n");
+		printf("********************\n");
+		scanf("%s",ipstr);
+		if(ipstr[0] == '0') return 0;
+		args->ip = inet_addr(ipstr);
+	}
 	if(args->ip==-1) goto err;
 	if(argc>2) args->port = atoi(argv[2]);
+	else {
+		printf("********************\n");
+		printf("* Input server Port*\n");
+		printf("* '0'  to default  *\n");
+		printf("********************\n");
+		int port;
+		scanf("%d",&port);
+		if(port == 0) return 0;
+		else args->port = port;
+	}
 	return 0;
 err:
 	printf("Failed in arg parse!\n");
@@ -39,74 +60,91 @@ int Set_addr(sockaddr_in *addr,Args args){
 
 char recvBuf[4096];
 
-pthread_mutex_t lock1;
-
 Game game;
 
-void UI(){
-	while(1){
-		printf("Input (1-3)\n");
-		printf("1 move\n2 shoot\n3 set bell\n");
-		int tmp;
-		scanf("%d", &tmp);
-		if(tmp == 1){
-			game.player[0]->state=p_active;
-			printf("Input towards(at most 3 steps) U(p) or D(own) or L(eft) or R(ight) \n");
-			printf("Don't split your towards by ',' or ' ' \n");
-			char str[128]="MOV ";
-			scanf("%s",str+4);
-			for(int i=4; str[i]!='\0';i++) movq.push(str[i]);
-			str[strlen(str)+1] = '\0';
-			str[strlen(str)] = '\n';
-			bufInsert(&game.send[0], str);
-			break;
-		}
-		if(tmp == 2){
-			if(game.player[0]->state != p_active){
-				printf("You need move and then can shoot!\n");
-				continue;
+int UI(){
+
+	char tmp = turnUI(&game);
+	if(tmp == '1'){
+		game.player[0]->state=p_active;
+		printf("Input towards(Use arrow keys or WASD) and finished by Enter\n");
+		printf("At most 3 steps!\n");
+		char str[128]="MOV ";
+		int p=4;
+		for(;;){
+			char ch = towardsUI(&game);
+			if(ch=='Q') return 0;
+			if(ch == 13){
+				if(p != 4) break;
 			}
-			printf("Input towards U(p) or D(own) or L(eft) or R(ight) \n");
-			char str[128]="SHOOT ";
-			scanf("%s",str+6);
-			str[strlen(str)+1] = '\0';
-			str[strlen(str)] = '\n';
-			bufInsert(&game.send[0], str);
-			break;						
+			else if(ch == 8){
+				if(p != 4) {
+					str[--p] = '\0';
+					
+				}
+			} 
+			else if(p < 7){
+				str[p] = ch;
+				p++;
+			}else printf("%c%c  %c%c",8,8,8,8);
 		}
-		if(tmp == 3){
-			if(game.player[0]->equipment != equipBell){
-				printf("No bell now!\n");
-				continue;
-			}
-			bufInsert(&game.send[0], "SET 0\n");
-			break;
-		}
+		printf("\n");
+		for(int i=4; str[i]!='\0';i++) movq.push(str[i]);
+		str[strlen(str)+1] = '\0';
+		str[strlen(str)] = '\n';
+		bufInsert(&game.send[0], str);
 	}
+	if(tmp == '2'){
+		printf("Input towards(Use arrow keys or WASD) and finished by Enter\n");
+		char str[128]="SHOOT ";
+		bool flag = false;
+		for(;;){
+			char ch = towardsUI(&game);
+			if(ch=='Q') return 0;
+			if(ch == 13){
+				if(flag) break;
+			}
+			else if(ch == 8){
+				flag = false;
+			} 
+			else if(!flag){
+				str[6] = ch;
+				flag = true;
+			}else printf("%c%c  %c%c",8,8,8,8);
+		}		
+		printf("\n");
+		str[strlen(str)+1] = '\0';
+		str[strlen(str)] = '\n';
+		game.player[0]->state = p_onlyMove;
+		bufInsert(&game.send[0], str);					
+	}
+	if(tmp == '3'){
+		game.player[0]->equipment = equipNull;
+		bufInsert(&game.send[0], "SET 0\n");
+	}
+	return 1;
 
 
 
 }
 
 int main(int argc,char* argv[]){
-	pthread_mutex_init(&lock1,NULL);
-	WSADATA wsaData;
 	string input;
 	Args args;
 	pthread_t readthread;
 	arg_parse(&args,argc,argv);
 
-	int nRc = WSAStartup(0x0202,&wsaData);
-
+#ifdef WIN32
+	WSADATA wsaData;			
+	int nRc = WSAStartup(0x0202,&wsaData);	
 	if(nRc){
 		printf("Winsock  startup failed with error!\n");
 	}
-
 	if(wsaData.wVersion != 0x0202){
 		printf("Winsock version is not correct!\n");
 	}
-
 	printf("Winsock  startup Ok!\n");
+#endif
 
 
 	SOCKET clientSocket;
@@ -176,8 +214,8 @@ int main(int argc,char* argv[]){
 			game.player[0]->positionY=mInt;
 			break;
 		case msg_TEXT:
+			CLS();
 			mapLog(&game);
-			printf("*************\n");
 			break;
 		case msg_LOSE:
 			printf("You lose!\n");
@@ -227,15 +265,18 @@ int main(int argc,char* argv[]){
 			printf("%s", mArg);
 			break;
 		case msg_READY:
+			CLS();
 			mapLog(&game);
-			printf("*************\n");
-			UI();
-			printf("*************\n");
+			
+			while(!UI()) printf("\n");
+			
 			break;
 		}
 		abandonMessage(&game.recv[0]);
 	}while(!game.finished);
 	closesocket(clientSocket);
 	WSACleanup();
+	printf("Input Q to leave!\n");
+	while(getchar()!='q'&&getchar()!='Q');
 }
 //10.12.56.97
