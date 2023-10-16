@@ -21,6 +21,9 @@ typedef int SOCKET;
 #define SOCKET_ERROR -1
 typedef sockaddr* (LPSOCKADDR);
 #endif
+#ifdef WIN32
+#define MSG_NOSIGNAL 0
+#endif
 
 const int maxBufLength = 4096;
 const int maxRecycleLength = 1024;

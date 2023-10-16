@@ -67,7 +67,7 @@ void* socketSendLoop(void* ctx){
         sem_wait(&socketBuf->messageList.length);
         pthread_mutex_lock(&socketBuf->socketMutex);
         DEBUG("send something: %d %s\n", socketBuf->socket, socketBuf->messageList.head->message);
-
+        
         send(socketBuf->socket, socketBuf->messageList.head->message, 128, MSG_NOSIGNAL);
         messagePop(&socketBuf->messageList);
         pthread_mutex_unlock(&socketBuf->socketMutex);
