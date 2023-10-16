@@ -11,10 +11,28 @@
 
 #endif
 
+#ifdef __linux__
+typedef int SOCKET;
+#define closesocket(x) close(x)
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
+typedef sockaddr* (LPSOCKADDR);
+#endif
+
 const int maxBufLength = 4096;
 const int maxRecycleLength = 1024;
 
 const int maxWaitSec = 120;
+
+struct Args{
+	unsigned int ip;
+	unsigned short port;
+};
+
+int Set_addr(sockaddr_in *addr,Args args);
 
 struct SocketBuf{
     SOCKET socket;

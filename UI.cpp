@@ -1,8 +1,10 @@
 #include "UI.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#ifdef WIN32
 #include <conio.h>
-
+#endif
 char turnUI(Game *game){
     
 
@@ -22,9 +24,16 @@ char turnUI(Game *game){
     printf("********************\n");
 
     while(true){
+#ifdef WIN32
         char ch = getch();
+#endif
+#ifdef __linux__
+        char ch = getchar();
+#endif
         if(KEYS[ch]) return ch; 
     }
+
+
 
 }
 
@@ -34,7 +43,12 @@ char towardsUI(Game *game){
 
     bool arrow = 0;
     while(true){
-        int ch = getch();
+        #ifdef WIN32
+            char ch = getch();
+        #endif
+        #ifdef __linux__
+            char ch = getchar();
+        #endif
         
         if(!arrow && (ch == 'w' || ch == 'W') || ch == 72 && arrow){
             printf("%c%c",161,252);

@@ -1,9 +1,16 @@
 #ifndef Game__h
 #define Game__h
 
+#ifdef WIN32
 #include "winsock2.h"
-#include "Socket.h"
 #pragma comment(lib,"ws2_32.lib")
+#endif
+#ifdef __linux__
+#include <sys/unistd.h>
+#include <sys/un.h>
+#endif
+#include "Socket.h"
+
 
 #define opposite(X) ( (X) ^ 1)
 #define delta(x, y) ( (x) < (y) ? (y) - (x) : (x) - (y))

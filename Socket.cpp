@@ -1,6 +1,17 @@
 #include "Socket.h"
 #include <stdio.h>
 
+int Set_addr(sockaddr_in *addr,Args args){
+	addr->sin_port = htons(args.port);
+#ifdef WIN32
+	addr->sin_addr.S_un.S_addr = args.ip;
+#endif
+#ifdef __linux__
+	addr->sin_addr.s_addr = args.ip;
+#endif
+	return 0;
+}
+
 int bufInsert(SocketBuf* socketBuf, const char* str){
     pthread_mutex_lock(&socketBuf->socketMutex);
     for(const char *ptr = str; *ptr != '\0'; ptr += messageLength(str) ){

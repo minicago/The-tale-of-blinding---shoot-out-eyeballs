@@ -10,13 +10,8 @@
 
 const int MAX_Client = 256;
 
-struct Args{
-	unsigned int ip;
-	unsigned short port;
-};
-
 int arg_parse(Args *args,int argc,char* argv[]){
-	args->ip = 0;
+	args->ip = INADDR_ANY;
 	args->port = 5050;
 	if(argc>3) goto err;
 	if(argc>1) args->ip = inet_addr(argv[1]);
@@ -29,12 +24,6 @@ err:
 }
 
 char rootpath[4096];
-
-int Set_addr(sockaddr_in *addr,Args args){
-	addr->sin_port = htons(args.port);
-	addr->sin_addr.S_un.S_addr = args.ip;
-	return 0;
-}
 
 struct Room{
 	SOCKET socket[2];
@@ -64,8 +53,12 @@ int main(int argc,char* argv[]){
 	SOCKET srvSocket;
 	sockaddr_in addr,clientAddr;
 	//SOCKET sessionSocket;
-	
+#ifdef WIN32
 	int addrLen;
+#endif
+#ifdef __linux__
+	socklen_t addrLen;
+#endif
 	//create socket
 	srvSocket = socket(AF_INET,SOCK_STREAM,0);
 	if(srvSocket != INVALID_SOCKET)

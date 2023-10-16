@@ -1,21 +1,15 @@
 #include <stdio.h>
 #include <iostream>
-#include <string>
+#include <string.h>
 #include <pthread.h>
 #include "Game.h"
 #include <queue>
-#include <conio.h>
 #include <stdlib.h>
 
 #include "UI.h"
 
 using namespace std;
 queue<char> movq;
-
-struct Args{
-	unsigned int ip;
-	unsigned short port;
-};
 
 int arg_parse(Args *args,int argc,char* argv[]){
 	args->ip = inet_addr("127.0.0.1");
@@ -48,14 +42,6 @@ int arg_parse(Args *args,int argc,char* argv[]){
 err:
 	printf("Failed in arg parse!\n");
 	return 1;
-}
-
-int Set_addr(sockaddr_in *addr,Args args){
-	//printf("%llu %u\n",args.port,args.ip);
-	(addr->sin_port) = htons(args.port);
-	
-	(addr->sin_addr).S_un.S_addr = args.ip;
-	return 0;
 }
 
 char recvBuf[4096];
@@ -130,10 +116,12 @@ int UI(){
 
 int main(int argc,char* argv[]){
 	string input;
-	Args args;
+	Args args,arg_default;
 	pthread_t readthread;
 	arg_parse(&args,argc,argv);
-
+	
+	arg_default.ip = INADDR_ANY;
+	arg_default.port = htons(0);
 #ifdef WIN32
 	WSADATA wsaData;			
 	int nRc = WSAStartup(0x0202,&wsaData);	
@@ -145,7 +133,6 @@ int main(int argc,char* argv[]){
 	}
 	printf("Winsock  startup Ok!\n");
 #endif
-
 
 	SOCKET clientSocket;
 	sockaddr_in serverAddr,clientAddr;
@@ -161,8 +148,7 @@ int main(int argc,char* argv[]){
 	//set client port and ip
 	clientAddr.sin_family = AF_INET;
 	
-	clientAddr.sin_port = htons(0);
-	clientAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	Set_addr(&clientAddr,arg_default);
 	 
 	//binding
 	int rtn = bind(clientSocket,(LPSOCKADDR)&clientAddr,sizeof(clientAddr));
@@ -275,7 +261,9 @@ int main(int argc,char* argv[]){
 		abandonMessage(&game.recv[0]);
 	}while(!game.finished);
 	closesocket(clientSocket);
+#ifdef WIN32
 	WSACleanup();
+#endif
 	printf("Input Q to leave!\n");
 	while(getchar()!='q'&&getchar()!='Q');
 }
