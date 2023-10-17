@@ -176,7 +176,82 @@ int initGame(Game *game, int mapSize, SOCKET socket0, SOCKET socket1){
     return 0;
 }
 
+int serverReact(Game* game, char* message){
+    MessageType msgType = messageParse(message);
+    const char* mArg = messageString(message);
+    int mInt = messageInt(message);
+    int currentPlayer = game->currentTurn & 1;
+    switch (msgType)
+    {
+        case msg_MOV:
+            
+            for(int cnt = 0; cnt < 3; cnt++){
+                if(mArg[cnt] == '\n' || mArg[cnt] == '\0') break;           
+                if(mArg[cnt] == 'U'){
+                    if(playerMove(game, currentPlayer, -1, 0) == false) break;
+                }
+                if(mArg[cnt] == 'D'){
+                    if(playerMove(game, currentPlayer, +1, 0) == false) break;
+                }                
+                if(mArg[cnt] == 'L'){
+                    if(playerMove(game, currentPlayer, 0, -1) == false) break;
+                }
+                if(mArg[cnt] == 'R'){
+                    if(playerMove(game, currentPlayer, 0, +1) == false) break;
+                }                                
+            }
+            return 1;
+            break;
+        
+        case msg_SHOOT:
+            if(mArg[0] == 'U'){
+               playerShoot(game, currentPlayer, -1, 0);
+            }
+            if(mArg[0] == 'D'){
+                playerShoot(game, currentPlayer, +1, 0);
+            }                
+            if(mArg[0] == 'L'){
+                playerShoot(game, currentPlayer, 0, -1);
+            }
+            if(mArg[0] == 'R'){
+                playerShoot(game, currentPlayer, 0, +1);
+            }
+            return 1;     
+            break;
 
+        case msg_SET:
+            playerSetBell(game, currentPlayer);   
+            return 1;         
+            break;
+
+        case msg_ERR:
+            game->finished = true;
+            bufInsert(&game->send[opposite(currentPlayer)], "ERR 1\n");
+            bufInsert(&game->send[currentPlayer], "ERR 0\n");
+            pullMessage(&game->recv[opposite(currentPlayer)]);
+            pthread_exit(NULL);  
+            return 2;
+            break;
+        
+        case msg_TEXT:
+            bufInsert(&game->send[opposite(currentPlayer)], message);
+            return 0;
+            break;
+
+        case msg_TIMEOUT:
+            bufInsert(&game->send[0],"ERR 1\n");
+            bufInsert(&game->send[1],"ERR 1\n");
+            game->finished = true;
+            return 2;
+            break;
+
+        
+        default:
+            return 0;
+            break;
+    }
+
+}
 
 void* gameLoop(void* ctx){
     Game* game = (Game*) ctx;
@@ -198,75 +273,23 @@ void* gameLoop(void* ctx){
         int currentPlayer = game->currentTurn & 1;
         bufInsert(&game->send[currentPlayer], "READY 0\n");
         char *message;
-        while(1){
+
+        while(1){        
 
             message = pullMessage(&game->recv[currentPlayer]);
 
             DEBUG("pull message: %s\n",message);
-            if(messageParse(message) == msg_TIMEOUT){
-                abandonMessage(&game->recv[currentPlayer]);
-                if(game->recv[currentPlayer].messageList.head == NULL){
-                    bufInsert(&game->send[0],"CANCEL 1\n");
-                    bufInsert(&game->send[1],"CANCEL 1\n");
-                    cancelGame(game);
-                }
-            }else break;
+
+            int ret = serverReact(game, message);
+
+            abandonMessage(&game->recv[currentPlayer]);
+
+            if(ret == 2) return NULL;
+            if(ret == 1) break;
+            if(ret == 0) continue;            
         }
-        MessageType msgType = messageParse(message);
-        const char* mArg = messageString(message);
-        switch (msgType)
-        {
-        case msg_MOV:
-            
-            for(int cnt = 0; cnt < 3; cnt++){
-                if(mArg[cnt] == '\n' || mArg[cnt] == '\0') break;           
-                if(mArg[cnt] == 'U'){
-                    if(playerMove(game, currentPlayer, -1, 0) == false) break;
-                }
-                if(mArg[cnt] == 'D'){
-                    if(playerMove(game, currentPlayer, +1, 0) == false) break;
-                }                
-                if(mArg[cnt] == 'L'){
-                    if(playerMove(game, currentPlayer, 0, -1) == false) break;
-                }
-                if(mArg[cnt] == 'R'){
-                    if(playerMove(game, currentPlayer, 0, +1) == false) break;
-                }                                
-            }
-            break;
         
-        case msg_SHOOT:
-            if(mArg[0] == 'U'){
-               playerShoot(game, currentPlayer, -1, 0);
-            }
-            if(mArg[0] == 'D'){
-                playerShoot(game, currentPlayer, +1, 0);
-            }                
-            if(mArg[0] == 'L'){
-                playerShoot(game, currentPlayer, 0, -1);
-            }
-            if(mArg[0] == 'R'){
-                playerShoot(game, currentPlayer, 0, +1);
-            }             
-            break;
-
-        case msg_SET:
-            playerSetBell(game, currentPlayer);            
-            break;
-
-        case msg_ERR:
-            game->finished = true;
-            bufInsert(&game->send[opposite(currentPlayer)], "ERR 1\n");
-            pullMessage(&game->recv[opposite(currentPlayer)]);
-            pthread_exit(NULL);  
-                      
-            break;
-
-        default:
-            break;
-        }
-        abandonMessage(&game->recv[currentPlayer]);
-        bufInsert(&game->send[currentPlayer], "TEXT 0\n");
+        bufInsert(&game->send[currentPlayer], "READY 1\n");
         
     }
     
@@ -274,7 +297,7 @@ void* gameLoop(void* ctx){
     pullMessage(&game->recv[1]);
     abandonMessage(&game->recv[0]);
     abandonMessage(&game->recv[1]);
-
+    game->finished = true;
     pthread_exit(NULL);
     return NULL;
 }

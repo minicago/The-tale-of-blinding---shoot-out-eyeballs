@@ -79,6 +79,7 @@ int UI(){
 		str[strlen(str)+1] = '\0';
 		str[strlen(str)] = '\n';
 		bufInsert(&game.send[0], str);
+		return 1;
 	}
 	if(tmp == '2'){
 		printf("Input towards(Use arrow keys or WASD) and finished by Enter\n");
@@ -102,16 +103,37 @@ int UI(){
 		str[strlen(str)+1] = '\0';
 		str[strlen(str)] = '\n';
 		game.player[0]->state = p_onlyMove;
-		bufInsert(&game.send[0], str);					
+		bufInsert(&game.send[0], str);
+		return 1;			
 	}
 	if(tmp == '3'){
 		game.player[0]->equipment = equipNull;
 		bufInsert(&game.send[0], "SET 0\n");
+		return 1;
 	}
-	return 1;
+	if(tmp == '4'){
+		char text[256]="TEXT ";
+		printf("Input >");
+		int ch = getchar();
+		while(ch == '\n' || ch == ' ') ch=getchar();
+		for(int i = 5; ;i++){
+			text[i] = ch;
+			if(ch == '\n') {
+				text[i+1] = '\0';
+				break;
+			}
+			if(ch == ' ') {
+				text[i] = '_';
+			}
+			ch = getchar();
+		}
+		bufInsert(&game.send[0] ,text);
+		return 0;
+	}	
+	
 
 
-
+	return 0;
 }
 
 int main(int argc,char* argv[]){
@@ -200,8 +222,9 @@ int main(int argc,char* argv[]){
 			game.player[0]->positionY=mInt;
 			break;
 		case msg_TEXT:
-			CLS();
 			mapLog(&game);
+			printf("Your enemy says:");
+			stringLog(messageString(message));
 			break;
 		case msg_LOSE:
 			printf("You lose!\n");
@@ -248,18 +271,31 @@ int main(int argc,char* argv[]){
 			}
 			break;
 		case msg_VOICE:
-			printf("%s", mArg);
+			printf("You heard : %s", mArg);
 			break;
 		case msg_READY:
-			CLS();
-			mapLog(&game);
 			
-			while(!UI()) printf("\n");
+			
+			if(mInt == 0){
+				CLS();
+				printf("Your turn:\n");
+				mapLog(&game);
+				while(!UI()) printf("\n");
+			}
+			else if(mInt == 1){
+				printf("\n");
+				mapLog(&game);
+				CLS();
+				printf("Your enemy's turn:\n");
+			}
+			
+			
+			
 			
 			break;
 		case msg_ERR:
 			printf("Disconnected from server for some reason.\n");
-			if(mInt == 1) printf("Your opposite is leaving!\n");
+			if(mInt == 1) printf("Your opposite left!\n");
 			else printf("Unknown reason.");
 			bufInsert(&game.send[0], "ERR 0\n");
 			break;

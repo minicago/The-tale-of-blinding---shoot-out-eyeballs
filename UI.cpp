@@ -21,6 +21,9 @@ char turnUI(Game *game){
     printf("* 3 SET BELL       *\n");
     KEYS['3'] = 1;
     }
+
+    printf("* 4 CHAT           *\n");
+    KEYS['4'] = 1;
     printf("********************\n");
 
     while(true){
@@ -81,6 +84,6 @@ char towardsUI(Game *game){
 }
 
 void CLS(){
-    printf("******************************\n");
+    printf("\n******************************\n");
     //do nothing
 }
