@@ -34,6 +34,8 @@ struct Room{
 
 int main(int argc,char* argv[]){
 
+	daemon(1,0);
+	freopen("Server.log","w",stdout);
 	srand(time(NULL));
 
 	Args args;
